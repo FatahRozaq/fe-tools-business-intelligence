@@ -17,6 +17,7 @@
     "fe-tools-business-intelligence": "file:",
     "font-awesome": "^4.7.0",
     "jquery": "^3.7.1",
+    "primereact": "^10.9.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
