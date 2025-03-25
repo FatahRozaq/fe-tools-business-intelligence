@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import DataTableComponent from "./DataTableComponent";
 
-const Canvas = () => {
+
+const Canvas = ({ data, query }) => {
   const [scale, setScale] = useState(1);
   const zoomSpeed = 0.005;
   const canvasRef = useRef(null);
@@ -18,7 +20,7 @@ const Canvas = () => {
 
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("wheel", handleWheel);
+      container.addEventListener("wheel", handleWheel, { passive: false }); // Add passive: false to prevent default scroll behavior
     }
 
     return () => {
@@ -28,20 +30,26 @@ const Canvas = () => {
     };
   }, [scale]);
 
-  return (
-    <main className="canvas-container" ref={containerRef} style={{ overflow: "auto" }}>
-      <div
-        className="canvas"
-        ref={canvasRef}
-        style={{ transform: `scale(${scale})`, transformOrigin: "center" }}
-      >
-        {/* Tempat untuk menampilkan tabel */}
-        <div
-          id="tableContainer"
-          style={{ padding: 20, margin: 10, border: "1px solid #ffffff" }}
-        >
-          {/* Tabel akan ditampilkan di sini */}
+
+  if (!query || query.length === 0) {
+    return (
+      <main className="canvas-container" ref={containerRef}>
+        <div className="canvas" style={{ transform: `scale(${scale})`, transformOrigin: "center" }}>
+          <div id="tableContainer" style={{ padding: 20, margin: 10, border: "1px solid #ffffff" }}>
+            <p>No data available</p>
+          </div>
         </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="canvas-container"  ref={containerRef}>
+      <div className="canvas" style={{ transform: `scale(${scale})`, transformOrigin: "center" }}>
+        <div id="tableContainer" style={{ padding: 20, margin: 10, border: "1px solid #ffffff" }}>
+        <DataTableComponent data={data} query={query} />
+        </div>
+        
       </div>
     </main>
   );
