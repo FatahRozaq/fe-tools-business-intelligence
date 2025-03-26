@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import axios from "axios";
 import config from "../config";
+import FooterBar from "./FooterBar";
 
 const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, selectedTable }) => {
   const [dimensiInputs, setDimensiInputs] = useState([""]);
   const [metrikInputs, setMetrikInputs] = useState([""]);
+  const [showFooter, setShowFooter] = useState(false);
+  const [filters, setFilters] = useState([]);
 
   // Fungsi untuk menambahkan input Dimensi
   const handleAddDimensi = () => {
@@ -14,6 +17,11 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
   // Fungsi untuk menambahkan input Metrik
   const handleAddMetrik = () => {
     setMetrikInputs([...metrikInputs, ""]);
+  };
+
+  // Fungsi menampilkan FooterBar
+  const handleToggleFooter = () => {
+    setShowFooter(!showFooter);
   };
 
   // Fungsi untuk menangani perubahan input Dimensi
@@ -30,6 +38,11 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
     setMetrikInputs(newMetrikInputs);
   };
 
+  const handleApplyFilters = (newFilters) => {
+    setFilters(newFilters);
+    sendDataToAPI(); // Kirim ulang data setelah filter diterapkan
+  };
+
   // Fungsi untuk mengirim data dimensi dan metriks ke API
   const sendDataToAPI = () => {
     const table = selectedTable;  // Menggunakan prop selectedTable
@@ -40,6 +53,7 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
       .post(`${config.API_BASE_URL}/api/kelola-dashboard/table-data/${table}`, {
         dimensi,
         metriks,
+        filters,
       })
       .then((response) => {
         if (response.data.success) {
@@ -117,13 +131,15 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
         </div>
         <div className="form-group">
           <span>Filter</span>
-          <input type="text" id="filter-input" onChange={fetchData} />
+          <button type="button" className="btn btn-secondary mt-2" onClick={handleToggleFooter}>
+            Buat Filter</button>
         </div>
 
         <button type="button" className="btn btn-primary mt-3" onClick={sendDataToAPI}>
         Kirim Data
       </button>
       </div>
+      {showFooter && <FooterBar onApplyFilters={handleApplyFilters} />}
     </div>
   );
 };
