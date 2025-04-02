@@ -7,7 +7,9 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
   const [dimensiInputs, setDimensiInputs] = useState([""]);
   const [metrikInputs, setMetrikInputs] = useState([""]);
   const [showFooter, setShowFooter] = useState(false);
-  const [filters, setFilters] = useState([]);
+  const [filters, setFilters] = useState([
+    { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" }
+  ]);
 
   // Fungsi untuk menambahkan input Dimensi
   const handleAddDimensi = () => {
@@ -38,7 +40,8 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
     setMetrikInputs(newMetrikInputs);
   };
 
-  const handleApplyFilters = (newFilters) => {
+  const handleApplyFilters = (newFilters, appliedFilters) => {
+    console.log("Filters applied:", appliedFilters);
     setFilters(newFilters);
     sendDataToAPI(); // Kirim ulang data setelah filter diterapkan
   };
@@ -139,7 +142,11 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
         Kirim Data
       </button>
       </div>
-      {showFooter && <FooterBar onApplyFilters={handleApplyFilters} />}
+      {showFooter && <FooterBar
+      filters={filters}
+      setFilters={setFilters}
+      handleApplyFilters={handleApplyFilters}
+      handleToggleFooter={handleToggleFooter} />}
     </div>
   );
 };

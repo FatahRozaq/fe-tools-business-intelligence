@@ -248,17 +248,74 @@
   # Footer
   --------------------------------------------------------------*/
 .footer-bar {
-position: fixed;
-bottom: 0;
-left: 0;
-width: 100%;
-background-color: #f8f9fa;
-padding: 15px;
-text-align: center;
-box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-z-index: 100000000;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #f8f9fa;
+    border-top: 2px solid #ddd;
+    padding: 15px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 100000000;
 }
+
+.footer-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+  
+.footer-bar-close {
+    cursor: pointer;
+    font-size: 18px;
+    background: none;
+    border: none;
+}
+
+.filter-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+  
+.filter-input {
+    flex: 1;
+    max-width: 150px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+  
+.footer-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.left-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.logic-dropdown {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.right-buttons {
+    display: flex;
+    gap: 10px;
+}
+/* .filter-row {
 display: flex;
 gap: 10px;
 justify-content: center;
@@ -268,4 +325,4 @@ select, input {
 padding: 5px;
 border: 1px solid #ccc;
 border-radius: 5px;
-}
+} */
