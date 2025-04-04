@@ -43,7 +43,7 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
 
   useEffect(() => {
     axios
-      .get(`${config.API_BASE_URL}/api/kelola-dashboard/tables`)
+      .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
       .then((response) => {
         setTables(response.data.data || []);
         setLoading(false);
@@ -58,7 +58,7 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
     if (columns[table]) return; // Hindari fetch ulang jika sudah ada
 
     axios
-      .get(`${config.API_BASE_URL}/api/kelola-dashboard/columns/${table}`)
+      .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
       .then((response) => {
         setColumns((prev) => ({ ...prev, [table]: response.data.data }));
       })

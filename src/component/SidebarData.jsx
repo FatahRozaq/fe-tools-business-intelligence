@@ -53,7 +53,7 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
     const metriks = metrikInputs.length > 0 ? metrikInputs[0] : null; 
 
     axios
-      .post(`${config.API_BASE_URL}/api/kelola-dashboard/table-data/${table}`, {
+      .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data/${table}`, {
         dimensi,
         metriks,
         filters,
