@@ -10,6 +10,8 @@ import "font-awesome/css/font-awesome.min.css"; // FontAwesome
 import Header from "./component/Header";
 import Sidebar from "./component/Sidebar";
 import Canvas from "./component/Canvas";
+import 'primereact/resources/themes/lara-light-indigo/theme.css';  // Tema PrimeReact
+import 'primereact/resources/primereact.min.css';  // CSS utama PrimeReact
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
       <div className="main-container">
         <Sidebar />
         <Canvas />
+        {/* <Canvas/> */}
       </div>
     </>
   );
