@@ -7,14 +7,14 @@ import config from "../config";
 
 
 
-const Sidebar = () => {
+const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
   const [data, setData] = useState([]); // Menyimpan data dari API
-  const [canvasData, setCanvasData] = useState([]);
-  const [canvasQuery, setCanvasQuery] = useState([]);
+  // const [canvasData, setCanvasData] = useState([]);
+  // const [canvasQuery, setCanvasQuery] = useState([]);
 
   useEffect(() => {
     const sidebarData = document.getElementById("sidebar-data");
@@ -151,7 +151,6 @@ const Sidebar = () => {
       <SidebarData setCanvasData={setCanvasData} 
         selectedTable={selectedTable} setCanvasQuery={setCanvasQuery}/>
       <SidebarDiagram/>
-      <Canvas data={canvasData} query={canvasQuery} />
     </>
   );
 };
