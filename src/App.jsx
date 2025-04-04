@@ -12,15 +12,13 @@ import Sidebar from "./component/Sidebar";
 import Canvas from "./component/Canvas";
 
 function App() {
-  
-
   return (
     <>
       <Header />
 
       <div className="main-container">
         <Sidebar />
-        <Canvas/>
+        <Canvas />
       </div>
     </>
   );
