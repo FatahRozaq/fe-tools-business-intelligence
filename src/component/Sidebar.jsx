@@ -5,13 +5,18 @@ import SidebarData from "./SidebarData";
 import config from "../config";
 import SidebarDatasource from "./SidebarDatasource";
 import AddDatasource from "./AddDataSource";
+import Canvas from "./Canvas";
 
-const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
+const Sidebar = ({ }) => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan AddDatasource
+  const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan 
+  const [canvasData, setCanvasData] = useState([]);
+  const [canvasQuery, setCanvasQuery] = useState([]);
+  
+
 
   useEffect(() => {
       const sidebarData = document.getElementById("sidebar-data");
@@ -107,40 +112,45 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
                   data-bs-parent="#tableAccordion"
                 >
                   <div className="column-container">
-                    {columns[table] ? (
-                      columns[table].map((col, colIndex) => (
-                        <div
-                          key={colIndex}
-                          className="column-card"
-                          draggable={true}
-                          onDragStart={(event) =>
-                            event.dataTransfer.setData("text/plain", col.name)
-                          }
-                        >
-                          <span className="column-icons">
-                            {col.type.includes("int") ||
-                            col.type.includes("numeric") ||
-                            col.type.includes("float") ||
-                            col.type.includes("double") ||
-                            col.type.includes("decimal")
-                              ? "123"
-                              : col.type.includes("char") ||
-                                col.type.includes("text") ||
-                                col.type.includes("string")
-                              ? "ABC"
-                              : col.type.includes("date") ||
-                                col.type.includes("time") ||
-                                col.type.includes("timestamp")
-                              ? "DATE"
-                              : "🔗"}
-                          </span>
-                          {col.name}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted">Loading...</p>
-                    )}
-                  </div>
+  {columns[table] ? (
+    columns[table].map((col, colIndex) => (
+      <div
+        key={colIndex}
+        className="column-card"
+        draggable={true}
+        onDragStart={(event) => {
+          const columnData = {
+            columnName: col.name,
+            tableName: table
+          };
+          event.dataTransfer.setData("text/plain", JSON.stringify(columnData)); // Sending both column name and table name
+        }}
+      >
+        <span className="column-icons">
+          {col.type.includes("int") ||
+          col.type.includes("numeric") ||
+          col.type.includes("float") ||
+          col.type.includes("double") ||
+          col.type.includes("decimal")
+            ? "123"
+            : col.type.includes("char") ||
+              col.type.includes("text") ||
+              col.type.includes("string")
+            ? "ABC"
+            : col.type.includes("date") ||
+              col.type.includes("time") ||
+              col.type.includes("timestamp")
+            ? "DATE"
+            : "🔗"}
+        </span>
+        {col.name} {/* Display only the column name */}
+      </div>
+    ))
+  ) : (
+    <p className="text-muted">Loading...</p>
+  )}
+</div>
+
                 </div>
               </div>
             ))}
@@ -150,6 +160,8 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
 
       <SidebarData setCanvasData={setCanvasData} selectedTable={selectedTable} setCanvasQuery={setCanvasQuery} />
       <SidebarDiagram />
+      <Canvas data={canvasData} query={canvasQuery} />
+      
     </>
   );
 };

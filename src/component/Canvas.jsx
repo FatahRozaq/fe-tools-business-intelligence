@@ -56,3 +56,4 @@ const Canvas = ({ data, query }) => {
 };
 
 export default Canvas;
+

@@ -25,10 +25,10 @@ function App() {
           setCanvasData={setCanvasData} 
           setCanvasQuery={setCanvasQuery} 
         />
-        <Canvas 
+        {/* <Canvas 
           data={canvasData} 
           query={canvasQuery} 
-        />
+        /> */}
       </div>
     </>
   );
