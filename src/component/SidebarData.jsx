@@ -175,13 +175,28 @@ const handleMetrikChange = (index, event) => {
       ...joinDimensiData.filter((dimensiJoin) => dimensiJoin.tabel && dimensiJoin.join_type !== "tanpa join"),
       ...joinMetrikData.filter((metrikJoin) => metrikJoin.tabel && metrikJoin.join_type !== "tanpa join"),
     ];
-  
+
+    // Siapkan filters agar sesuai struktur backend
+    const parsedFilters = filters
+    .filter((filter) => filter.column && filter.operator)
+    .map((filter) => {
+      const column = filter.column.includes('.') ? filter.column : `${selectedTable}.${filter.column}`;
+      return {
+        column,
+        operator: filter.operator,
+        value: filter.value,
+        mode: filter.mode?.toLowerCase() || 'include',
+        logic: filter.logic?.toLowerCase() || 'and',
+      };
+    });
+
     axios
       .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, {
         tabel: table,
         dimensi,
         metriks,
         tabel_join: tabelJoin,  // Gabungkan join dimensi dan join metrik
+        filters: parsedFilters, // Kirim filter
       })
       .then((response) => {
         if (response.data.success) {
