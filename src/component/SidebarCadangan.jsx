@@ -2,42 +2,45 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import SidebarDiagram from "./SidebarDiagram";
 import SidebarData from "./SidebarData";
+import Canvas from "./Canvas";
 import config from "../config";
-import SidebarDatasource from "./SidebarDatasource";
-import AddDatasource from "./AddDataSource";
+
+
 
 const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan AddDatasource
+  const [data, setData] = useState([]); // Menyimpan data dari API
+  // const [canvasData, setCanvasData] = useState([]);
+  // const [canvasQuery, setCanvasQuery] = useState([]);
 
   useEffect(() => {
-      const sidebarData = document.getElementById("sidebar-data");
-      const sidebarDiagram = document.getElementById("sidebar-diagram");
-  
-      if (sidebarData && sidebarDiagram) {
+    const sidebarData = document.getElementById("sidebar-data");
+    const sidebarDiagram = document.getElementById("sidebar-diagram");
+
+    if (sidebarData && sidebarDiagram) {
+      sidebarData.style.display = "block";
+      sidebarDiagram.style.display = "none";
+    }
+
+    const pilihDataBtn = document.getElementById("menu-data");
+    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+
+    if (pilihDataBtn && pilihVisualisasiBtn) {
+      pilihDataBtn.addEventListener("click", () => {
         sidebarData.style.display = "block";
         sidebarDiagram.style.display = "none";
-      }
-  
-      const pilihDataBtn = document.getElementById("menu-data");
-      const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-  
-      if (pilihDataBtn && pilihVisualisasiBtn) {
-        pilihDataBtn.addEventListener("click", () => {
-          sidebarData.style.display = "block";
-          sidebarDiagram.style.display = "none";
-        });
-  
-        pilihVisualisasiBtn.addEventListener("click", () => {
-          sidebarData.style.display = "none";
-          sidebarDiagram.style.display = "block";
-        });
-      }
-    }, []);
-  
+      });
+
+      pilihVisualisasiBtn.addEventListener("click", () => {
+        sidebarData.style.display = "none";
+        sidebarDiagram.style.display = "block";
+      });
+    }
+  }, []);
+
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
@@ -52,7 +55,7 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
   }, []);
 
   const fetchColumns = (table) => {
-    if (columns[table]) return;
+    if (columns[table]) return; // Hindari fetch ulang jika sudah ada
 
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
@@ -64,23 +67,21 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
       });
   };
 
+
   return (
     <>
-      {loading ? (
-        <div className="alert alert-info">Loading...</div>
-      ) : showAddDatasource ? ( 
-        // Tampilkan AddDatasource jika tombol ditekan
-        <AddDatasource />
-      ) : tables.length === 0 ? (
-        <SidebarDatasource onTambahDatasource={() => setShowAddDatasource(true)} />
-      ) : (
-        <div id="sidebar" className="sidebar">
-          <div className="sub-title">
-            <img src="/assets/img/icons/Storage.png" alt="" />
-            <span className="sub-text">Data</span>
-          </div>
-          <hr className="full-line" />
+      <div id="sidebar" className="sidebar">
+        <div className="sub-title">
+          <img src="/assets/img/icons/Storage.png" alt="" />
+          <span className="sub-text">Data</span>
+        </div>
+        <hr className="full-line" />
 
+        {loading ? (
+          <div className="alert alert-info">Loading...</div>
+        ) : tables.length === 0 ? (
+          <p className="text-muted">Tidak ada tabel tersedia.</p>
+        ) : (
           <div className="accordion" id="tableAccordion">
             {tables.map((table, index) => (
               <div className="accordion-item" key={index}>
@@ -145,11 +146,11 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      <SidebarData setCanvasData={setCanvasData} selectedTable={selectedTable} setCanvasQuery={setCanvasQuery} />
-      <SidebarDiagram />
+        )}
+      </div>
+      <SidebarData setCanvasData={setCanvasData} 
+        selectedTable={selectedTable} setCanvasQuery={setCanvasQuery}/>
+      <SidebarDiagram/>
     </>
   );
 };

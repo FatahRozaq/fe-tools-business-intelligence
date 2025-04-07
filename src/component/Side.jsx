@@ -14,31 +14,6 @@ const Sidebar = ({ setCanvasData, setCanvasQuery }) => {
   const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan AddDatasource
 
   useEffect(() => {
-      const sidebarData = document.getElementById("sidebar-data");
-      const sidebarDiagram = document.getElementById("sidebar-diagram");
-  
-      if (sidebarData && sidebarDiagram) {
-        sidebarData.style.display = "block";
-        sidebarDiagram.style.display = "none";
-      }
-  
-      const pilihDataBtn = document.getElementById("menu-data");
-      const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-  
-      if (pilihDataBtn && pilihVisualisasiBtn) {
-        pilihDataBtn.addEventListener("click", () => {
-          sidebarData.style.display = "block";
-          sidebarDiagram.style.display = "none";
-        });
-  
-        pilihVisualisasiBtn.addEventListener("click", () => {
-          sidebarData.style.display = "none";
-          sidebarDiagram.style.display = "block";
-        });
-      }
-    }, []);
-  
-  useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
       .then((response) => {
