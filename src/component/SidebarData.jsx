@@ -180,7 +180,7 @@ const handleMetrikChange = (index, event) => {
     const parsedFilters = filters
     .filter((filter) => filter.column && filter.operator)
     .map((filter) => {
-      const column = filter.column.includes('.') ? filter.column : `${selectedTable}.${filter.column}`;
+      const column = filter.column.includes('') ? filter.column : `${selectedTable}.${filter.column}`;
       return {
         column,
         operator: filter.operator,
