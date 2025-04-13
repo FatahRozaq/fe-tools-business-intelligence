@@ -11,6 +11,8 @@ const DataTableComponent = ({ data, query }) => {
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     });
     const [queryResult, setQueryResult] = useState(null);  // Store the result of the query here
+    const [selectedText, setSelectedText] = useState("");  // Store selected full text for preview
+    const [showPreview, setShowPreview] = useState(false);  // Show/hide preview modal
 
     useEffect(() => {
         if (query) {
@@ -43,32 +45,98 @@ const DataTableComponent = ({ data, query }) => {
         setFilters({ ...filters, global: { value, matchMode: FilterMatchMode.CONTAINS } });
     };
 
+    const handleDoubleClick = (value) => {
+        setSelectedText(value);
+        setShowPreview(true);  // Show preview modal on double click
+    };
+
     // Dynamically create columns based on the keys of the query result data
     const columns = queryResult
         ? Object.keys(queryResult[0] || {}).map((key, index) => (
-              <Column key={index} field={key} header={key.charAt(0).toUpperCase() + key.slice(1)} sortable />
+              <Column
+                key={index}
+                field={key}
+                header={key.charAt(0).toUpperCase() + key.slice(1)}
+                sortable
+                style={{ minWidth: '200px' }}  // Set a fixed width for columns
+                bodyStyle={{
+                    maxWidth: '200px',  // Limit the width of the cell content
+                    whiteSpace: 'nowrap',  // Prevent content from wrapping
+                    overflowX: 'hidden',  // Truncate the content and hide overflow
+                    textOverflow: 'ellipsis',  // Add ellipsis for truncated content
+                    cursor: 'pointer',  // Make the cell appear clickable
+                }}
+                body={(rowData) => (
+                    <div onDoubleClick={() => handleDoubleClick(rowData[key])}>
+                        {rowData[key]}
+                    </div>
+                )}
+              />
           ))
         : [];
 
+    const closePreview = () => {
+        setShowPreview(false);
+    };
+
     return (
-        <div className="card">
+        <div className="card" style={{ overflowX: 'auto' }}>
+            {/* DataTable Component */}
             <DataTable
                 value={queryResult || data}  // Use query result if available, otherwise use the passed data
                 paginator
-                rows={5}
+                rows={6}
                 header={renderHeader()}
                 filters={filters}
                 onFilter={(e) => setFilters(e.filters)}
                 emptyMessage="No data found."
-                tableStyle={{ minWidth: '1rem' }}
+                tableStyle={{ minWidth: '100%' }}
             >
                 {columns}
             </DataTable>
 
-            {/* Optionally, display the query */}
-           
+            {/* Modal/Preview for the Full Description */}
+            {showPreview && (
+                <div className="preview-modal" style={modalStyles}>
+                    <div className="modal-content" style={modalContentStyles}>
+                        <span onClick={closePreview} style={closeButtonStyles}>X</span>
+                        {/* <h2>Full Description</h2> */}
+                        <p>{selectedText}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
+};
+
+// Styles for the modal preview
+const modalStyles = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+};
+
+const modalContentStyles = {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '5px',
+    width: '80%',
+    maxHeight: '80%',
+    overflowY: 'auto',
+};
+
+const closeButtonStyles = {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    fontSize: '20px',
+    cursor: 'pointer',
 };
 
 export default DataTableComponent;
