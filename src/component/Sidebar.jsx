@@ -7,59 +7,57 @@ import SidebarDatasource from "./SidebarDatasource";
 import AddDatasource from "./AddDataSource";
 import Canvas from "./Canvas";
 import SidebarQuery from "./SidebarQuery";
+import { AiOutlineDatabase } from "react-icons/ai";
+import { GrDatabase } from "react-icons/gr";
 
-const Sidebar = ({ }) => {
+const Sidebar = ({}) => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan 
+  const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState([]);
   const [canvasMenuQuery, setCanvasMenuQuery] = useState("");
-  
-
+  const [chartType, setChartType] = useState("");
+  const [selectedColors, setSelectedColors] = useState(["#4CAF50", "#FF9800", "#2196F3"]);
 
   useEffect(() => {
-      const sidebarData = document.getElementById("sidebar-data");
-      const sidebarDiagram = document.getElementById("sidebar-diagram");
-      const sidebarQuery = document.getElementById("sidebar-query");
-  
-      if (sidebarData && sidebarDiagram && sidebarQuery) {
+    const sidebarData = document.getElementById("sidebar-data");
+    const sidebarDiagram = document.getElementById("sidebar-diagram");
+    const sidebarQuery = document.getElementById("sidebar-query");
+
+    if (sidebarData && sidebarDiagram && sidebarQuery) {
+      sidebarData.style.display = "block";
+      sidebarDiagram.style.display = "none";
+      sidebarQuery.style.display = "none";
+    }
+
+    const pilihDataBtn = document.getElementById("menu-data");
+    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+    const pilihQueryBtn = document.getElementById("menu-query");
+
+    if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn) {
+      pilihDataBtn.addEventListener("click", () => {
         sidebarData.style.display = "block";
         sidebarDiagram.style.display = "none";
         sidebarQuery.style.display = "none";
-      }
-  
-      const pilihDataBtn = document.getElementById("menu-data");
-      const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-      const pilihQueryBtn = document.getElementById("menu-query");
-  
-      if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn) {
+      });
 
-        pilihDataBtn.addEventListener("click", () => {
-          sidebarData.style.display = "block";
-          sidebarDiagram.style.display = "none";
-          sidebarQuery.style.display = "none";
-        });
-  
-        pilihVisualisasiBtn.addEventListener("click", () => {
-          
-          sidebarDiagram.style.display = "block";
-          sidebarQuery.style.display = "none";
-          sidebarData.style.display = "none";
-        });
+      pilihVisualisasiBtn.addEventListener("click", () => {
+        sidebarDiagram.style.display = "block";
+        sidebarQuery.style.display = "none";
+        sidebarData.style.display = "none";
+      });
 
-        pilihQueryBtn.addEventListener("click", () => {
-          
-          sidebarQuery.style.display = "block";
-          sidebarData.style.display = "none";
-          sidebarDiagram.style.display = "none";
+      pilihQueryBtn.addEventListener("click", () => {
+        sidebarQuery.style.display = "block";
+        sidebarData.style.display = "none";
+        sidebarDiagram.style.display = "none";
+      });
+    }
+  }, []);
 
-        });
-      }
-    }, []);
-  
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
@@ -94,15 +92,17 @@ const Sidebar = ({ }) => {
     <>
       {loading ? (
         <div className="alert alert-info">Loading...</div>
-      ) : showAddDatasource ? ( 
+      ) : showAddDatasource ? (
         // Tampilkan AddDatasource jika tombol ditekan
         <AddDatasource />
       ) : tables.length === 0 ? (
-        <SidebarDatasource onTambahDatasource={() => setShowAddDatasource(true)} />
+        <SidebarDatasource
+          onTambahDatasource={() => setShowAddDatasource(true)}
+        />
       ) : (
         <div id="sidebar" className="sidebar">
           <div className="sub-title">
-            <img src="/assets/img/icons/Storage.png" alt="" />
+            <GrDatabase size={48} />
             <span className="sub-text">Data</span>
           </div>
           <hr className="full-line" />
@@ -133,45 +133,47 @@ const Sidebar = ({ }) => {
                   data-bs-parent="#tableAccordion"
                 >
                   <div className="column-container">
-  {columns[table] ? (
-    columns[table].map((col, colIndex) => (
-      <div
-        key={colIndex}
-        className="column-card"
-        draggable={true}
-        onDragStart={(event) => {
-          const columnData = {
-            columnName: col.name,
-            tableName: table
-          };
-          event.dataTransfer.setData("text/plain", JSON.stringify(columnData)); // Sending both column name and table name
-        }}
-      >
-        <span className="column-icons">
-          {col.type.includes("int") ||
-          col.type.includes("numeric") ||
-          col.type.includes("float") ||
-          col.type.includes("double") ||
-          col.type.includes("decimal")
-            ? "123"
-            : col.type.includes("char") ||
-              col.type.includes("text") ||
-              col.type.includes("string")
-            ? "ABC"
-            : col.type.includes("date") ||
-              col.type.includes("time") ||
-              col.type.includes("timestamp")
-            ? "DATE"
-            : "🔗"}
-        </span>
-        {col.name}
-      </div>
-    ))
-  ) : (
-    <p className="text-muted">Loading...</p>
-  )}
-</div>
-
+                    {columns[table] ? (
+                      columns[table].map((col, colIndex) => (
+                        <div
+                          key={colIndex}
+                          className="column-card"
+                          draggable={true}
+                          onDragStart={(event) => {
+                            const columnData = {
+                              columnName: col.name,
+                              tableName: table,
+                            };
+                            event.dataTransfer.setData(
+                              "text/plain",
+                              JSON.stringify(columnData)
+                            ); // Sending both column name and table name
+                          }}
+                        >
+                          <span className="column-icons">
+                            {col.type.includes("int") ||
+                            col.type.includes("numeric") ||
+                            col.type.includes("float") ||
+                            col.type.includes("double") ||
+                            col.type.includes("decimal")
+                              ? "123"
+                              : col.type.includes("char") ||
+                                col.type.includes("text") ||
+                                col.type.includes("string")
+                              ? "ABC"
+                              : col.type.includes("date") ||
+                                col.type.includes("time") ||
+                                col.type.includes("timestamp")
+                              ? "DATE"
+                              : "🔗"}
+                          </span>
+                          {col.name}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted">Loading...</p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -179,13 +181,15 @@ const Sidebar = ({ }) => {
         </div>
       )}
 
-      <SidebarData setCanvasData={setCanvasData} selectedTable={selectedTable} setCanvasQuery={setCanvasQuery} />
-      <SidebarDiagram />
+      <SidebarData
+        setCanvasData={setCanvasData}
+        selectedTable={selectedTable}
+        setCanvasQuery={setCanvasQuery}
+      />
+      <SidebarDiagram onChartTypeChange={setChartType} onColorChange={setSelectedColors}/>
       <SidebarQuery onQuerySubmit={handleQuerySubmit} />
       {/* <SidebarQuery /> */}
-      <Canvas data={canvasData} query={canvasQuery} />
-      
-      
+      <Canvas data={canvasData} query={canvasQuery} chartType={chartType} selectedColors={selectedColors}/>
     </>
   );
 };

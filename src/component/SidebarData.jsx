@@ -2,15 +2,22 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import config from "../config";
 import FooterBar from "./FooterBar";
-import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
+import { GrDatabase } from "react-icons/gr";
 
-const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, selectedTable }) => {
+const SidebarData = ({
+  fetchData,
+  addDimensi,
+  setCanvasData,
+  setCanvasQuery,
+  selectedTable,
+}) => {
   const [dimensiInputs, setDimensiInputs] = useState([""]);
   const [metrikInputs, setMetrikInputs] = useState([]);
   const [showFooter, setShowFooter] = useState(false);
   const [filters, setFilters] = useState([
-    { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" }
+    { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" },
   ]);
 
   const [showPopup, setShowPopup] = useState(false);
@@ -23,13 +30,12 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
 
   const [joinDimensiData, setJoinDimensiData] = useState([]); // Untuk join dimensi
   const [joinMetrikData, setJoinMetrikData] = useState([]); // Untuk join metri
-  
+
   const [metrikAggregation, setMetrikAggregation] = useState([]);
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
 
-  const [selectedJoinType, setSelectedJoinType] = useState('INNER');
-  const [selectedJoinTypeMetrik, setSelectedJoinTypeMetrik] = useState('INNER');
-  
+  const [selectedJoinType, setSelectedJoinType] = useState("INNER");
+  const [selectedJoinTypeMetrik, setSelectedJoinTypeMetrik] = useState("INNER");
 
   useEffect(() => {
     axios
@@ -68,16 +74,20 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
   const formatColumnName = (data, type) => {
     try {
       // Memeriksa apakah data adalah string JSON, jika ya, parsing
-      if (typeof data === 'string') {
+      if (typeof data === "string") {
         const parsedData = JSON.parse(data);
-        return parsedData[type === 'dimensi' ? 'columnName' : 'columnName'] || ''; // Ambil columnName
+        return (
+          parsedData[type === "dimensi" ? "columnName" : "columnName"] || ""
+        ); // Ambil columnName
       }
-  
+
       // Jika data sudah berupa objek, langsung ambil columnName
-      return data && data[type === 'dimensi' ? 'columnName' : 'columnName'] ? data[type === 'dimensi' ? 'columnName' : 'columnName'] : '';
+      return data && data[type === "dimensi" ? "columnName" : "columnName"]
+        ? data[type === "dimensi" ? "columnName" : "columnName"]
+        : "";
     } catch (error) {
       // console.error('Error formatting columnName:', error);
-      return ''; // Kembalikan string kosong jika ada kesalahan
+      return ""; // Kembalikan string kosong jika ada kesalahan
     }
   };
 
@@ -88,28 +98,26 @@ const SidebarData = ({ fetchData, addDimensi, setCanvasData, setCanvasQuery, sel
 
   const handleDimensiChange = (index, event) => {
     const newDimensiInputs = [...dimensiInputs];
-    newDimensiInputs[index] = event.target.value;  // Memasukkan format tableName.columnName
+    newDimensiInputs[index] = event.target.value; // Memasukkan format tableName.columnName
     setDimensiInputs(newDimensiInputs);
-};
+  };
 
+  const handleMetrikChange = (index, event) => {
+    const newMetrikInputs = [...metrikInputs];
+    newMetrikInputs[index] = event.target.value; // Menyimpan nilai input metriks
+    setMetrikInputs(newMetrikInputs);
+  };
 
-const handleMetrikChange = (index, event) => {
-  const newMetrikInputs = [...metrikInputs];
-  newMetrikInputs[index] = event.target.value; // Menyimpan nilai input metriks
-  setMetrikInputs(newMetrikInputs);
-};
+  const handleAggregationChange = (index, event) => {
+    const newAggregation = [...metrikAggregation];
+    newAggregation[index] = event.target.value; // Menyimpan jenis agregasi
+    setMetrikAggregation(newAggregation);
 
-const handleAggregationChange = (index, event) => {
-  const newAggregation = [...metrikAggregation];
-  newAggregation[index] = event.target.value; // Menyimpan jenis agregasi
-  setMetrikAggregation(newAggregation);
-
-  // Gabungkan nilai metrik dengan agregasi yang dipilih
-  const newMetrikInputs = [...metrikInputs];
-  newMetrikInputs[index] = `${newMetrikInputs[index]}|${event.target.value}`;  // Format menjadi columnName|AGGREGATION
-  setMetrikInputs(newMetrikInputs);
-};
-
+    // Gabungkan nilai metrik dengan agregasi yang dipilih
+    const newMetrikInputs = [...metrikInputs];
+    newMetrikInputs[index] = `${newMetrikInputs[index]}|${event.target.value}`; // Format menjadi columnName|AGGREGATION
+    setMetrikInputs(newMetrikInputs);
+  };
 
   const handleApplyFilters = (newFilters, appliedFilters) => {
     console.log("Filters applied:", appliedFilters);
@@ -121,68 +129,74 @@ const handleAggregationChange = (index, event) => {
     // Menambahkan tipe join dan tabel saat pengguna mengklik OK
     const newJoinDimensiIndexes = [...joinDimensiIndexes];
     const lastDimensiIndex = dimensiInputs.length - 1;
-  
+
     const newJoinData = [...joinDimensiData];
     const selectedTableForJoin = selectedJoinTable;
-  
+
     // Update join data dengan tabel yang dipilih dan tipe join
-    newJoinData[lastDimensiIndex] = { 
-      tabel: selectedTableForJoin, 
-      join_type: type 
+    newJoinData[lastDimensiIndex] = {
+      tabel: selectedTableForJoin,
+      join_type: type,
     };
-  
+
     if (type !== "tanpa join") {
       newJoinDimensiIndexes.push(lastDimensiIndex); // Menambahkan ke index join jika bukan "tanpa join"
     } else {
-      const updatedIndexes = newJoinDimensiIndexes.filter((index) => index !== lastDimensiIndex);
-      newJoinDimensiIndexes.splice(0, newJoinDimensiIndexes.length, ...updatedIndexes);
+      const updatedIndexes = newJoinDimensiIndexes.filter(
+        (index) => index !== lastDimensiIndex
+      );
+      newJoinDimensiIndexes.splice(
+        0,
+        newJoinDimensiIndexes.length,
+        ...updatedIndexes
+      );
       newJoinData[lastDimensiIndex] = { tabel: "", join_type: "tanpa join" };
     }
-  
+
     // Set data join dan update index join
     setJoinDimensiData(newJoinData);
     setJoinDimensiIndexes(newJoinDimensiIndexes);
-  
+
     // Menambahkan input Dimensi baru dengan menambahkan string kosong ke array dimensiInputs
     setDimensiInputs([...dimensiInputs, ""]);
-  
+
     setShowPopup(false); // Menutup popup setelah konfirmasi
   };
-  
+
   const handleJoinSelectionMetrik = (type) => {
     // Add join type and table when user clicks OK
     if (waitingForConfirmation) {
       const newJoinData = [...joinMetrikData];
       const lastMetrikIndex = metrikInputs.length;
-  
+
       if (type !== "tanpa join") {
-        newJoinData[lastMetrikIndex] = { 
-          tabel: selectedJoinTableMetrik, 
-          join_type: type 
+        newJoinData[lastMetrikIndex] = {
+          tabel: selectedJoinTableMetrik,
+          join_type: type,
         };
       } else {
-        newJoinData[lastMetrikIndex] = { 
-          tabel: "", 
-          join_type: "tanpa join" 
+        newJoinData[lastMetrikIndex] = {
+          tabel: "",
+          join_type: "tanpa join",
         };
       }
-  
+
       setJoinMetrikData(newJoinData);
       setMetrikInputs([...metrikInputs, ""]); // Add new input after confirmation
       setShowPopupMetrik(false); // Close the popup after confirmation
       setWaitingForConfirmation(false); // Reset waiting state
     }
   };
-  
+
   const sendDataToAPI = () => {
     const firstDimensi = dimensiInputs[0];
-    let table = '';
-  
+    let table = "";
+
     if (firstDimensi) {
       // Jika dimensi pertama ada, ambil tabel dari dimensi pertama
       try {
         const parsedDimensi = JSON.parse(firstDimensi);
-        table = parsedDimensi.tableName || '';
+        table = parsedDimensi.tableName || "";
       } catch (e) {
         console.error("Failed to parse firstDimensi:", e);
       }
@@ -192,67 +206,75 @@ const handleAggregationChange = (index, event) => {
       if (firstMetrik) {
         try {
           const parsedMetrik = JSON.parse(firstMetrik);
-          table = parsedMetrik.tableName || '';  // Ambil tabel dari metriks pertama
+          table = parsedMetrik.tableName || ""; // Ambil tabel dari metriks pertama
         } catch (e) {
           console.error("Failed to parse firstMetrik:", e);
         }
       }
     }
-  
+
     const dimensi = dimensiInputs
       .map((dimensi) => {
         try {
           const parsedDimensi = JSON.parse(dimensi);
           return parsedDimensi.tableName && parsedDimensi.columnName
             ? `${parsedDimensi.tableName}.${parsedDimensi.columnName}`
-            : '';
+            : "";
         } catch (e) {
           console.error("Failed to parse dimensi item:", e);
-          return '';
+          return "";
         }
       })
       .filter((input) => input && input.trim() !== "");
-  
-      const metriks = metrikInputs
-    .map((metrik, index) => {
-      try {
-        const parsedMetrik = JSON.parse(metrik);
-        const aggregation = metrikAggregation[index] || 'COUNT'; // Default to 'COUNT' if no aggregation is selected
-        return parsedMetrik.tableName && parsedMetrik.columnName
-          ? `${parsedMetrik.tableName}.${parsedMetrik.columnName}|${aggregation}`
-          : '';
-      } catch (e) {
-        console.error("Failed to parse metrik item:", e);
-        return '';
-      }
-    })
-    .filter((input) => input && input.trim() !== "");
-  
+
+    const metriks = metrikInputs
+      .map((metrik, index) => {
+        try {
+          const parsedMetrik = JSON.parse(metrik);
+          const aggregation = metrikAggregation[index] || "COUNT"; // Default to 'COUNT' if no aggregation is selected
+          return parsedMetrik.tableName && parsedMetrik.columnName
+            ? `${parsedMetrik.tableName}.${parsedMetrik.columnName}|${aggregation}`
+            : "";
+        } catch (e) {
+          console.error("Failed to parse metrik item:", e);
+          return "";
+        }
+      })
+      .filter((input) => input && input.trim() !== "");
+
     const tabelJoin = [
-      ...joinDimensiData.filter((dimensiJoin) => dimensiJoin.tabel && dimensiJoin.join_type !== "tanpa join"),
-      ...joinMetrikData.filter((metrikJoin) => metrikJoin.tabel && metrikJoin.join_type !== "tanpa join"),
+      ...joinDimensiData.filter(
+        (dimensiJoin) =>
+          dimensiJoin.tabel && dimensiJoin.join_type !== "tanpa join"
+      ),
+      ...joinMetrikData.filter(
+        (metrikJoin) =>
+          metrikJoin.tabel && metrikJoin.join_type !== "tanpa join"
+      ),
     ];
-  
+
     const parsedFilters = filters
       .filter((filter) => filter.column && filter.operator)
       .map((filter) => {
-        const column = filter.column.includes('.') ? filter.column : `${selectedTable}.${filter.column}`;
+        const column = filter.column.includes(".")
+          ? filter.column
+          : `${selectedTable}.${filter.column}`;
         return {
           column,
           operator: filter.operator,
           value: filter.value,
-          mode: filter.mode?.toLowerCase() || 'include',
-          logic: filter.logic?.toLowerCase() || 'and',
+          mode: filter.mode?.toLowerCase() || "include",
+          logic: filter.logic?.toLowerCase() || "and",
         };
       });
-  
+
     // Kirim data ke API
     axios
       .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, {
-        tabel: table,  // Gunakan tabel dari dimensi pertama atau metriks pertama
+        tabel: table, // Gunakan tabel dari dimensi pertama atau metriks pertama
         dimensi,
-        metriks,  // Kirim metriks yang sudah terformat
-        tabel_join: tabelJoin,  // Gabungkan join dimensi dan join metrik
+        metriks, // Kirim metriks yang sudah terformat
+        tabel_join: tabelJoin, // Gabungkan join dimensi dan join metrik
         filters: parsedFilters, // Kirim filter
       })
       .then((response) => {
@@ -268,30 +290,34 @@ const handleAggregationChange = (index, event) => {
         console.error("Terjadi kesalahan saat mengirim data", error);
       });
   };
-  
 
   return (
     <div id="sidebar-data" className="sidebar-2">
       <div className="sub-title">
-        <img src="/assets/img/icons/ChartPieOutline.png" alt="" />
+        <GrDatabase size={48} />
         <span className="sub-text">Data</span>
       </div>
       <hr className="full-line" />
       <div className="form-diagram">
-      <div className="form-group">
+        <div className="form-group">
           <span>Dimensi</span>
           <div id="dimensi-container">
             {dimensiInputs.map((dimensi, index) => (
               <div key={index} className="dimensi-row">
-                <input style={{width: '100%'}}
+                <input
+                  style={{ width: "100%" }}
                   type="text"
                   className="dimensi-input"
-                  value={formatColumnName(dimensi, 'dimensi')}
+                  value={formatColumnName(dimensi, "dimensi")}
                   onChange={(e) => handleDimensiChange(index, e)}
                 />
-                {joinDimensiIndexes.includes(index) && joinDimensiData[index] && (
-                  <span className="join-text">{joinDimensiData[index].join_type} {joinDimensiData[index].tabel}</span>
-                )}
+                {joinDimensiIndexes.includes(index) &&
+                  joinDimensiData[index] && (
+                    <span className="join-text">
+                      {joinDimensiData[index].join_type}{" "}
+                      {joinDimensiData[index].tabel}
+                    </span>
+                  )}
               </div>
             ))}
           </div>
@@ -305,26 +331,46 @@ const handleAggregationChange = (index, event) => {
         </div>
 
         {/* Dialog PopUp Join Dimensi */}
-        <Dialog header="Pilih Jenis Dimensi" visible={showPopup} style={{ width: '50vw' }} onHide={() => setShowPopup(false)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ width: '45%' }}>
-            <h6>
-                Gabungkan Tabel {joinDimensiData.length > 0 && joinDimensiData[joinDimensiData.length - 1].tabel 
-                  ? joinDimensiData[joinDimensiData.length - 1].tabel 
-                  : (dimensiInputs.length > 0 && dimensiInputs[0] ? JSON.parse(dimensiInputs[0]).tableName : 'Pilih Tabel')}
+        <Dialog
+          header="Pilih Jenis Dimensi"
+          visible={showPopup}
+          style={{ width: "50vw" }}
+          onHide={() => setShowPopup(false)}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ width: "45%" }}>
+              <h6>
+                Gabungkan Tabel{" "}
+                {joinDimensiData.length > 0 &&
+                joinDimensiData[joinDimensiData.length - 1].tabel
+                  ? joinDimensiData[joinDimensiData.length - 1].tabel
+                  : dimensiInputs.length > 0 && dimensiInputs[0]
+                  ? JSON.parse(dimensiInputs[0]).tableName
+                  : "Pilih Tabel"}
               </h6>
-              <select onChange={(e) => setSelectedJoinTable(e.target.value)} style={{ width: '100%' }}>
+              <select
+                onChange={(e) => setSelectedJoinTable(e.target.value)}
+                style={{ width: "100%" }}
+              >
                 <option value="">Pilih Tabel</option>
                 {tables.map((table, idx) => (
-                  <option key={idx} value={table}>{table}</option>
+                  <option key={idx} value={table}>
+                    {table}
+                  </option>
                 ))}
               </select>
             </div>
-            <div style={{ width: '45%' }}>
+            <div style={{ width: "45%" }}>
               <h6>Join Tipe</h6>
-              <select 
-                onChange={(e) => setSelectedJoinType(e.target.value)} 
-                style={{ width: '100%' }}
+              <select
+                onChange={(e) => setSelectedJoinType(e.target.value)}
+                style={{ width: "100%" }}
               >
                 <option value="">Pilih tipe join</option>
                 <option value="INNER">INNER JOIN</option>
@@ -337,36 +383,44 @@ const handleAggregationChange = (index, event) => {
               </select>
             </div>
           </div>
-          <div style={{ marginTop: '20px', textAlign: 'right' }}>
-          <Button 
-            label="OK" 
-            icon="pi pi-check" 
-            onClick={() => handleJoinSelection(selectedJoinType)} 
-            style={{ marginRight: '10px' }} 
-          />
+          <div style={{ marginTop: "20px", textAlign: "right" }}>
+            <Button
+              label="OK"
+              icon="pi pi-check"
+              onClick={() => handleJoinSelection(selectedJoinType)}
+              style={{ marginRight: "10px" }}
+            />
 
-            <Button label="Batal" icon="pi pi-times" onClick={() => setShowPopup(false)} />
+            <Button
+              label="Batal"
+              icon="pi pi-times"
+              onClick={() => setShowPopup(false)}
+            />
           </div>
         </Dialog>
 
-
-<div className="form-group">
+        <div className="form-group">
           <span>Metrik</span>
           <div id="metrik-container">
             {metrikInputs.map((metrik, index) => (
               <div key={index} className="metrik-row">
                 {joinMetrikData[index] && (
-                  <span className="join-text">{joinMetrikData[index].join_type} {joinMetrikData[index].tabel}</span>
+                  <span className="join-text">
+                    {joinMetrikData[index].join_type}{" "}
+                    {joinMetrikData[index].tabel}
+                  </span>
                 )}
-                <input style={{ width: '80%' }}
+                <input
+                  style={{ width: "80%" }}
                   type="text"
                   className="metrik-input"
-                  value={formatColumnName(metrik, 'metrik')}
+                  value={formatColumnName(metrik, "metrik")}
                   onChange={(e) => handleMetrikChange(index, e)}
                 />
-                <select style={{ width: '20%' }}
+                <select
+                  style={{ width: "20%" }}
                   className="metrik-aggregation-dropdown"
-                  value={metrikAggregation[index] || 'COUNT'}
+                  value={metrikAggregation[index] || "COUNT"}
                   onChange={(e) => handleAggregationChange(index, e)}
                 >
                   <option value="COUNT">COUNT</option>
@@ -376,28 +430,48 @@ const handleAggregationChange = (index, event) => {
               </div>
             ))}
           </div>
-          <button type="button" className="btn btn-secondary mt-2" onClick={handleAddMetrik}>
+          <button
+            type="button"
+            className="btn btn-secondary mt-2"
+            onClick={handleAddMetrik}
+          >
             Tambah Metrik
           </button>
         </div>
 
         {/* Dialog PopUp Join Metrik */}
-        <Dialog header="Pilih Jenis Metrik" visible={showPopupMetrik} style={{ width: '50vw' }} onHide={() => setShowPopupMetrik(false)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ width: '45%' }}>
+        <Dialog
+          header="Pilih Jenis Metrik"
+          visible={showPopupMetrik}
+          style={{ width: "50vw" }}
+          onHide={() => setShowPopupMetrik(false)}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ width: "45%" }}>
               <h6>Gabungkan Tabel</h6>
-              <select onChange={(e) => setSelectedJoinTableMetrik(e.target.value)} style={{ width: '100%' }}>
+              <select
+                onChange={(e) => setSelectedJoinTableMetrik(e.target.value)}
+                style={{ width: "100%" }}
+              >
                 <option value="">Pilih Tabel</option>
                 {tables.map((table, idx) => (
-                  <option key={idx} value={table}>{table}</option>
+                  <option key={idx} value={table}>
+                    {table}
+                  </option>
                 ))}
               </select>
             </div>
-            <div style={{ width: '45%' }}>
+            <div style={{ width: "45%" }}>
               <h6>Join Tipe</h6>
-              <select 
-                onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)} 
-                style={{ width: '100%' }}
+              <select
+                onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)}
+                style={{ width: "100%" }}
               >
                 <option value="">Pilih Tabel</option>
                 <option value="INNER">INNER JOIN</option>
@@ -410,15 +484,19 @@ const handleAggregationChange = (index, event) => {
               </select>
             </div>
           </div>
-          <div style={{ marginTop: '20px', textAlign: 'right' }}>
-          <Button 
-              label="OK" 
-              icon="pi pi-check" 
-              onClick={() => handleJoinSelectionMetrik(selectedJoinTypeMetrik)} 
-              style={{ marginRight: '10px' }} 
+          <div style={{ marginTop: "20px", textAlign: "right" }}>
+            <Button
+              label="OK"
+              icon="pi pi-check"
+              onClick={() => handleJoinSelectionMetrik(selectedJoinTypeMetrik)}
+              style={{ marginRight: "10px" }}
             />
 
-            <Button label="Batal" icon="pi pi-times" onClick={() => setShowPopupMetrik(false)} />
+            <Button
+              label="Batal"
+              icon="pi pi-times"
+              onClick={() => setShowPopupMetrik(false)}
+            />
           </div>
         </Dialog>
 
@@ -428,19 +506,31 @@ const handleAggregationChange = (index, event) => {
         </div>
         <div className="form-group">
           <span>Filter</span>
-          <button type="button" className="btn btn-secondary mt-2" onClick={handleToggleFooter}>
-            Buat Filter</button>
+          <button
+            type="button"
+            className="btn btn-secondary mt-2"
+            onClick={handleToggleFooter}
+          >
+            Buat Filter
+          </button>
         </div>
 
-        <button type="button" className="btn btn-primary mt-3" onClick={sendDataToAPI}>
-        Kirim Data
-      </button>
+        <button
+          type="button"
+          className="btn btn-primary mt-3"
+          onClick={sendDataToAPI}
+        >
+          Kirim Data
+        </button>
       </div>
-      {showFooter && <FooterBar
-      filters={filters}
-      setFilters={setFilters}
-      handleApplyFilters={handleApplyFilters}
-      handleToggleFooter={handleToggleFooter} />}
+      {showFooter && (
+        <FooterBar
+          filters={filters}
+          setFilters={setFilters}
+          handleApplyFilters={handleApplyFilters}
+          handleToggleFooter={handleToggleFooter}
+        />
+      )}
     </div>
   );
 };
