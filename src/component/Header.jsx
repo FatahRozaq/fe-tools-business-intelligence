@@ -14,6 +14,8 @@ const Header = () => {
           <span id="menu-data" className="cursor-pointer">Pilih Data</span>
           <span className="mx-2">|</span>
           <span id="menu-visualisasi" className="cursor-pointer">Pilih Visualisasi</span>
+          <span className="mx-2">|</span>
+          <span id="menu-query" className="cursor-pointer">Query</span>
         </div>
       </div>
     </header>

@@ -6,6 +6,7 @@ import config from "../config";
 import SidebarDatasource from "./SidebarDatasource";
 import AddDatasource from "./AddDataSource";
 import Canvas from "./Canvas";
+import SidebarQuery from "./SidebarQuery";
 
 const Sidebar = ({ }) => {
   const [tables, setTables] = useState([]);
@@ -15,30 +16,46 @@ const Sidebar = ({ }) => {
   const [showAddDatasource, setShowAddDatasource] = useState(false); // State untuk menampilkan 
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState([]);
+  const [canvasMenuQuery, setCanvasMenuQuery] = useState("");
   
 
 
   useEffect(() => {
       const sidebarData = document.getElementById("sidebar-data");
       const sidebarDiagram = document.getElementById("sidebar-diagram");
+      const sidebarQuery = document.getElementById("sidebar-query");
   
-      if (sidebarData && sidebarDiagram) {
+      if (sidebarData && sidebarDiagram && sidebarQuery) {
         sidebarData.style.display = "block";
         sidebarDiagram.style.display = "none";
+        sidebarQuery.style.display = "none";
       }
   
       const pilihDataBtn = document.getElementById("menu-data");
       const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+      const pilihQueryBtn = document.getElementById("menu-query");
   
-      if (pilihDataBtn && pilihVisualisasiBtn) {
+      if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn) {
+
         pilihDataBtn.addEventListener("click", () => {
           sidebarData.style.display = "block";
           sidebarDiagram.style.display = "none";
+          sidebarQuery.style.display = "none";
         });
   
         pilihVisualisasiBtn.addEventListener("click", () => {
-          sidebarData.style.display = "none";
+          
           sidebarDiagram.style.display = "block";
+          sidebarQuery.style.display = "none";
+          sidebarData.style.display = "none";
+        });
+
+        pilihQueryBtn.addEventListener("click", () => {
+          
+          sidebarQuery.style.display = "block";
+          sidebarData.style.display = "none";
+          sidebarDiagram.style.display = "none";
+
         });
       }
     }, []);
@@ -67,6 +84,10 @@ const Sidebar = ({ }) => {
       .catch((error) => {
         console.error(`Gagal mengambil kolom untuk tabel ${table}:`, error);
       });
+  };
+
+  const handleQuerySubmit = (query) => {
+    setCanvasQuery(query); // Update canvasQuery dengan query yang dikirim
   };
 
   return (
@@ -143,7 +164,7 @@ const Sidebar = ({ }) => {
             ? "DATE"
             : "🔗"}
         </span>
-        {col.name} {/* Display only the column name */}
+        {col.name}
       </div>
     ))
   ) : (
@@ -160,7 +181,10 @@ const Sidebar = ({ }) => {
 
       <SidebarData setCanvasData={setCanvasData} selectedTable={selectedTable} setCanvasQuery={setCanvasQuery} />
       <SidebarDiagram />
+      <SidebarQuery onQuerySubmit={handleQuerySubmit} />
+      {/* <SidebarQuery /> */}
       <Canvas data={canvasData} query={canvasQuery} />
+      
       
     </>
   );
