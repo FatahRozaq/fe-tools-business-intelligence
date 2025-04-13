@@ -95,11 +95,39 @@
 }
 
 #tableAccordion {
-    max-height: 400px; /* Sesuaikan tinggi maksimal */
-    overflow-y: auto; /* Aktifkan scrolling hanya untuk accordion */
-    scrollbar-width: thin;
-    scrollbar-color: #aab7cf transparent;
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
 }
+
+/* Chrome, Edge, Safari */
+#tableAccordion::-webkit-scrollbar {
+    display: none;
+}
+
+.accordion-item {
+    border: none !important;
+    box-shadow: none !important; /* kalau ada shadow juga */
+}
+
+.accordion-button {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+}
+
+.accordion-button:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
 
 
 .sidebar-2 {
