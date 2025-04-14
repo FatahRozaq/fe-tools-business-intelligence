@@ -1,10 +1,12 @@
 import React from "react";
+import { FaPlus } from "react-icons/fa";
+import { GrDatabase } from "react-icons/gr";
 
 const SidebarDatasource = ({ onTambahDatasource }) => {
   return (
     <div id="sidebar" className="sidebar-2">
       <div className="sub-title">
-        <img src="/assets/img/icons/Storage.png" alt="" />
+        <GrDatabase size={48} className="text-muted" />
         <span className="sub-text">Data</span>
       </div>
       <hr className="full-line" />
@@ -12,8 +14,19 @@ const SidebarDatasource = ({ onTambahDatasource }) => {
         Anda belum memiliki datasource.
       </div>
       <div className="text-center">
-        <button className="btn btn-primary" id="menu-tambah-datasource" onClick={onTambahDatasource}>
-          Tambah Datasource
+        <button
+          type="submit"
+          className="btn d-flex align-items-center justify-content-center py-2 w-100 h-75 mt-3"
+          style={{
+            backgroundColor: "#000080",
+            color: "white",
+            borderRadius: "0.375rem",
+          }}
+          onClick={onTambahDatasource}
+          id="menu-tambah-datasource"
+        >
+          <FaPlus className="me-2" />
+          Tambah Datasources
         </button>
       </div>
     </div>

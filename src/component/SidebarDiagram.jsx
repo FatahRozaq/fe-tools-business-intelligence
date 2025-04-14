@@ -29,7 +29,7 @@ const SidebarDiagram = ({ onChartTypeChange, onColorChange }) => {
   return (
     <div id="sidebar-diagram" className="sidebar-2">
       <div className="sub-title">
-        <HiOutlineChartPie size={48} />
+        <HiOutlineChartPie size={48} className="text-muted"/>
         <span className="sub-text">Diagram</span>
       </div>
       <hr className="full-line" />

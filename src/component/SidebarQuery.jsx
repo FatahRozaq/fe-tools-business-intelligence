@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { FaPaperPlane } from "react-icons/fa";
+import { TbSql } from "react-icons/tb";
+import SubmitButton from "./Button/SubmitButton";
 
 const SidebarQuery = ({ onQuerySubmit }) => {
   const [query, setQuery] = useState("");
@@ -14,12 +17,12 @@ const SidebarQuery = ({ onQuerySubmit }) => {
   return (
     <div id="sidebar-query" className="sidebar-2">
       <div className="sub-title">
-        <img src="/assets/img/icons/QueryIcon.png" alt="" />
+        <TbSql size={48} className="text-muted" />
         <span className="sub-text">Query SQL</span>
       </div>
       <hr className="full-line" />
       <div className="form-query">
-        <div className="form-group" style={{width: '100%'}}>
+        <div className="form-group" style={{ width: "100%" }}>
           <textarea
             value={query}
             onChange={handleChange}
@@ -28,9 +31,8 @@ const SidebarQuery = ({ onQuerySubmit }) => {
             className="query-input"
           />
         </div>
-        <button onClick={handleSubmit} className="submit-query-btn">
-          Kirim Data
-        </button>
+
+        <SubmitButton onClick={handleSubmit} text="Submit" />
       </div>
     </div>
   );

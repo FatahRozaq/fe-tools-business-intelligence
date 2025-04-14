@@ -5,6 +5,9 @@ import FooterBar from "./FooterBar";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { GrDatabase } from "react-icons/gr";
+import { FaPaperPlane } from "react-icons/fa";
+import AddButton from "./Button/AddButton";
+import SubmitButton from "./Button/SubmitButton";
 
 const SidebarData = ({
   fetchData,
@@ -294,7 +297,7 @@ const SidebarData = ({
   return (
     <div id="sidebar-data" className="sidebar-2">
       <div className="sub-title">
-        <GrDatabase size={48} />
+        <GrDatabase size={48} className="text-muted" />
         <span className="sub-text">Data</span>
       </div>
       <hr className="full-line" />
@@ -321,13 +324,11 @@ const SidebarData = ({
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary mt-2"
+          <AddButton
+            text="Tambah Dimensi"
             onClick={handleAddDimensi}
-          >
-            Tambah Dimensi
-          </button>
+            className="mt-2"
+          />
         </div>
 
         {/* Dialog PopUp Join Dimensi */}
@@ -430,13 +431,12 @@ const SidebarData = ({
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary mt-2"
+
+          <AddButton
+            text="Tambah Metrik"
             onClick={handleAddMetrik}
-          >
-            Tambah Metrik
-          </button>
+            className="mt-2"
+          />
         </div>
 
         {/* Dialog PopUp Join Metrik */}
@@ -506,22 +506,14 @@ const SidebarData = ({
         </div>
         <div className="form-group">
           <span>Filter</span>
-          <button
-            type="button"
-            className="btn btn-secondary mt-2"
+          <AddButton
+            text="Tambah Filter"
             onClick={handleToggleFooter}
-          >
-            Buat Filter
-          </button>
+            className="mt-2"
+          />
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary mt-3"
-          onClick={sendDataToAPI}
-        >
-          Kirim Data
-        </button>
+        <SubmitButton onClick={sendDataToAPI} text="Submit" />
       </div>
       {showFooter && (
         <FooterBar

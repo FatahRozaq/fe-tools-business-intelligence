@@ -102,8 +102,8 @@ const Sidebar = ({}) => {
       ) : (
         <div id="sidebar" className="sidebar">
           <div className="sub-title">
-            <GrDatabase size={48} />
-            <span className="sub-text">Data</span>
+            <GrDatabase size={48} className="text-muted"/>
+            <span className="sub-text">Datasources</span>
           </div>
           <hr className="full-line" />
 
