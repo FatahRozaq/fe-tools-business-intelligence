@@ -377,7 +377,6 @@ const SidebarData = ({
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
-                <option value="SELF">SELF JOIN</option>
                 <option value="CROSS">CROSS JOIN</option>
                 <option value="FULL">FULL JOIN</option>
                 <option value="tanpa join">Tanpa Join</option>
