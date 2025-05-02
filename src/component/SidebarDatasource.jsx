@@ -7,7 +7,7 @@ const SidebarDatasource = ({ onTambahDatasource }) => {
     <div id="sidebar" className="sidebar-2">
       <div className="sub-title">
         <GrDatabase size={48} className="text-muted" />
-        <span className="sub-text">Data</span>
+        <span className="sub-text">Datasource</span>
       </div>
       <hr className="full-line" />
       <div className="alert alert-warning text-center">

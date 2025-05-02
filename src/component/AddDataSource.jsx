@@ -3,10 +3,11 @@ import axios from "axios";
 import config from "../config";
 import { GrDatabase } from "react-icons/gr";
 import { FaPlus } from "react-icons/fa";
+import { FaFloppyDisk } from "react-icons/fa6";
 
 const AddDatasource = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    name: "Database Baru",
     type: "",
     host: "",
     port: "",
@@ -23,7 +24,7 @@ const AddDatasource = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setMessage("");
-  
+
     axios
       .post(
         `${config.API_BASE_URL}/api/kelola-dashboard/fetch-database`,
@@ -43,7 +44,6 @@ const AddDatasource = () => {
         setMessage("Terjadi kesalahan: " + error.message);
       });
   };
-  
 
   return (
     <div className="sidebar-2" id="tambah-datasource">
@@ -54,7 +54,7 @@ const AddDatasource = () => {
       <hr className="full-line" />
       {message && <p className="message">{message}</p>}
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
+        {/* <div className="form-group">
           <label>
             Nama <span className="text-danger">*</span>
           </label>
@@ -66,7 +66,7 @@ const AddDatasource = () => {
             required
             className="form-control"
           />
-        </div>
+        </div> */}
 
         <div className="form-group">
           <label>
@@ -157,14 +157,15 @@ const AddDatasource = () => {
 
         <button
           type="submit"
-          className="btn d-flex align-items-center justify-content-center py-2 w-100 h-24 mt-3"
+          className="btn d-flex align-items-center justify-content-center py-2 w-100 mt-3"
           style={{
             backgroundColor: "#000080",
             color: "white",
             borderRadius: "0.375rem",
+            height: 40
           }}
         >
-          <FaPlus className="me-2" />
+          <FaFloppyDisk className="me-2" />
           Simpan
         </button>
       </form>

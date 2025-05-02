@@ -19,8 +19,24 @@ const Sidebar = ({}) => {
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState([]);
   const [canvasMenuQuery, setCanvasMenuQuery] = useState("");
-  const [chartType, setChartType] = useState("");
-  const [selectedColors, setSelectedColors] = useState(["#4CAF50", "#FF9800", "#2196F3"]);
+  const [visualizationType, setVisualizationType] = useState("");
+  // const [selectedColors, setSelectedColors] = useState(["#4CAF50", "#FF9800", "#2196F3"]);
+  const [visualizationConfig, setVisualizationConfig] = useState({
+    colors: ["#4CAF50", "#FF9800", "#2196F3"],
+    title: "Visualisasi Data",
+    titleFontSize: 18,
+    titleFontFamily: "Arial",
+    fontSize: 14,
+    fontFamily: "Arial",
+    fontColor: "#000000",
+    gridColor: "#E0E0E0",
+    backgroundColor: "#ffffff",
+    xAxisFontSize: 12,
+    xAxisFontFamily: "Arial",
+    yAxisFontSize: 12,
+    yAxisFontFamily: "Arial",
+    pattern: "solid"
+  });
 
   useEffect(() => {
     const sidebarData = document.getElementById("sidebar-data");
@@ -186,10 +202,18 @@ const Sidebar = ({}) => {
         selectedTable={selectedTable}
         setCanvasQuery={setCanvasQuery}
       />
-      <SidebarDiagram onChartTypeChange={setChartType} onColorChange={setSelectedColors}/>
+      <SidebarDiagram 
+          onVisualizationTypeChange={setVisualizationType} 
+          onVisualizationConfigChange={setVisualizationConfig} 
+        />
       <SidebarQuery onQuerySubmit={handleQuerySubmit} />
       {/* <SidebarQuery /> */}
-      <Canvas data={canvasData} query={canvasQuery} chartType={chartType} selectedColors={selectedColors}/>
+      <Canvas 
+          data={canvasData} 
+          query={canvasQuery} 
+          visualizationType={visualizationType} 
+          visualizationConfig={visualizationConfig}
+        />
     </>
   );
 };
