@@ -3,7 +3,7 @@ import { FaPaperPlane } from "react-icons/fa";
 import { TbSql } from "react-icons/tb";
 import SubmitButton from "./Button/SubmitButton";
 
-const SidebarQuery = ({ onQuerySubmit }) => {
+const SidebarQuery = ({ onQuerySubmit, onVisualizationTypeChange }) => {
   const [query, setQuery] = useState("");
 
   const handleChange = (e) => {
@@ -12,6 +12,7 @@ const SidebarQuery = ({ onQuerySubmit }) => {
 
   const handleSubmit = () => {
     onQuerySubmit(query); // Kirim query ke parent component (Sidebar.jsx)
+    onVisualizationTypeChange("bar");
   };
 
   return (

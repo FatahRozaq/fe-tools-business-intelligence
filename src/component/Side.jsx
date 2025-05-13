@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import SidebarDiagram from "./SidebarDiagram";
+import SidebarDiagram from "./SidebarDiagram/SidebarDiagram";
 import SidebarData from "./SidebarData";
 import config from "../config";
 import SidebarDatasource from "./SidebarDatasource";

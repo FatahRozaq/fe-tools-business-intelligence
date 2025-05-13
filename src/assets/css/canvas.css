@@ -1,0 +1,123 @@
+.canvas-container {
+  overflow: auto; /* Scrollable container for the zoomable canvas */
+  height: calc(
+    100vh - 60px
+  ); /* Sesuaikan dengan tinggi header/toolbar aplikasi Anda */
+  width: 100%;
+  background-color: #e8e8e8; /* Warna background sedikit lebih gelap untuk kontras */
+}
+
+.canvas {
+  background-color: #f4f6f8; /* Warna canvas lebih terang */
+  /* Ukuran canvas besar untuk memberi ruang drag & drop */
+  /* Padding tidak lagi diperlukan jika transformOrigin 0 0 */
+  /* padding: 20px; */
+  transition: transform 0.1s ease-out; /* Transisi halus untuk zoom */
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #555;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 100;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: hsl(206, 90%, 55%); /* Warna biru */
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(${1 / scale}); /* Skala terbalik agar teks tetap ukurannya */
+  text-align: center;
+  padding: 30px;
+  color: #777;
+  font-size: 1.1em;
+}
+.empty-state p {
+  margin-bottom: 10px;
+}
+
+.visualization-container {
+  /* transition: none; dihapus, interact.js menangani ini */
+  /* will-change: transform, width, height; Ini bagus untuk performa */
+  will-change: transform; /* Hanya transform yg sering berubah saat drag, width/height saat resize */
+}
+.visualization-container.dragging {
+  cursor: grabbing;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); /* Shadow lebih besar saat dragging */
+  opacity: 0.9;
+}
+.visualization-container.resizing {
+  opacity: 0.8;
+}
+
+.visualization-header {
+  background-color: #ffffff; /* Putih bersih untuk header */
+  padding: 0 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  height: 40px;
+  box-sizing: border-box;
+  border-top-left-radius: 7px; /* Match container's border radius */
+  border-top-right-radius: 7px;
+  cursor: inherit; /* Mengikuti cursor container */
+}
+
+.visualization-header h3 {
+  margin: 0;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 30px); /* Sisakan ruang untuk tombol close */
+  color: #333;
+}
+
+.remove-button {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px; /* Ukuran tombol X lebih besar */
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px; /* Area klik lebih besar */
+  z-index: 1; /* Di atas header, di bawah item terpilih */
+  transition: color 0.2s ease;
+}
+
+.remove-button:hover {
+  color: #e53935; /* Merah saat hover */
+}
+
+/* Interact.js handles resize from edges, so dedicated handles are not strictly needed */
+/* You can add CSS for custom cursors on edges if desired, e.g. 
+           .visualization-container.interact-resizer-left { cursor: e-resize; }
+        */

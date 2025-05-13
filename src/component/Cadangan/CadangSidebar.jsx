@@ -9,7 +9,6 @@ import Canvas from "./Canvas";
 import SidebarQuery from "./SidebarQuery";
 import { AiOutlineDatabase } from "react-icons/ai";
 import { GrDatabase } from "react-icons/gr";
-import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants"; 
 
 const Sidebar = ({}) => {
   const [tables, setTables] = useState([]);
@@ -21,7 +20,56 @@ const Sidebar = ({}) => {
   const [canvasQuery, setCanvasQuery] = useState("");
   const [visualizationType, setVisualizationType] = useState("");
 
-  const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
+  // console.log(visualizationType);
+  
+  // Default configuration for new visualizations
+  const defaultVisualizationConfig = {
+    colors: ["#4CAF50", "#FF9800", "#2196F3"],
+    
+    // Title settings
+    title: "Visualisasi Data",
+    titleFontSize: 18,
+    titleFontFamily: "Arial",
+    titlePosition: "center",
+    titleBackgroundColor: "#ffffff",
+    
+    // Font settings
+    fontSize: 14,
+    fontFamily: "Arial",
+    fontColor: "#000000",
+    
+    // Grid settings
+    gridColor: "#E0E0E0",
+    gridType: "solid",
+    
+    // Background settings
+    backgroundColor: "#ffffff",
+    
+    // Axis settings
+    xAxisFontSize: 12,
+    xAxisFontFamily: "Arial",
+    xAxisFontColor: "#000000",
+    
+    yAxisFontSize: 12,
+    yAxisFontFamily: "Arial",
+    yAxisFontColor: "#000000",
+    
+    // Pattern settings
+    pattern: "solid",
+    
+    // Category title settings
+    categoryTitle: "Kategori",
+    categoryTitleFontSize: 14,
+    categoryTitleFontFamily: "Arial",
+    categoryTitleFontColor: "#000000",
+    categoryTitlePosition: "center",
+    
+    // Value display settings
+    valuePosition: "top",
+    valueFontColor: "#000000"
+  };
+
+  const [visualizationConfig, setVisualizationConfig] = useState(defaultVisualizationConfig);
 
   // Add a state to track the selected visualization for configuration
   const [selectedVisualization, setSelectedVisualization] = useState(null);
@@ -93,16 +141,21 @@ const Sidebar = ({}) => {
 
   const handleQuerySubmit = (query) => {
     setCanvasQuery(query);
-    setVisualizationConfig({ ...DEFAULT_CONFIG }); 
+    // Reset configuration to default for new visualizations
+    setVisualizationConfig({...defaultVisualizationConfig});
+    // Set the flag to true to indicate that a new visualization should be created
     setAddNewVisualization(true);
+    // Clear selected visualization when creating a new one
     setSelectedVisualization(null);
   };
 
   // Reset the visualization type and query after a new visualization is added
   useEffect(() => {
     if (addNewVisualization && canvasQuery && visualizationType) {
+      // Reset the flag after the visualization has been created
       setTimeout(() => {
         setAddNewVisualization(false);
+        // Clear the inputs to prepare for a new visualization
         setCanvasQuery("");
         setVisualizationType("");
       }, 500);
@@ -111,6 +164,7 @@ const Sidebar = ({}) => {
 
   const handleVisualizationTypeChange = (type) => {
     setVisualizationType(type);
+    // If we already have a query, this means we should create a new visualization
     if (canvasQuery) {
       setAddNewVisualization(true);
     }
@@ -120,27 +174,29 @@ const Sidebar = ({}) => {
   const handleVisualizationSelect = (visualization) => {
     setSelectedVisualization(visualization);
     if (visualization) {
-      setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG }); // Gunakan spread operator
+      // Update the configuration panel with the selected visualization's config
+      // Use the visualization's existing config or default if not available
+      setVisualizationConfig(visualization.config || {...defaultVisualizationConfig});
     } else {
-      setVisualizationConfig({ ...DEFAULT_CONFIG }); // Gunakan spread operator
+      // If no visualization is selected, reset to default config
+      setVisualizationConfig({...defaultVisualizationConfig});
     }
   };
 
   // Handle updating configuration for the selected visualization
   const handleConfigUpdate = (config) => {
     setVisualizationConfig(config);
-
+    
     // If a visualization is selected, update its configuration
     if (selectedVisualization) {
-      setSelectedVisualization(prev => ({
-        ...prev,
-        config: { ...config }
-      }));
+      // This will pass the updated config to the Canvas component
+      selectedVisualization.config = config;
     }
   };
 
   return (
     <>
+      
       {loading ? (
         <div className="alert alert-info">Loading...</div>
       ) : showAddDatasource ? (
@@ -152,7 +208,7 @@ const Sidebar = ({}) => {
       ) : (
         <div id="sidebar" className="sidebar">
           <div className="sub-title">
-            <GrDatabase size={48} className="text-muted" />
+            <GrDatabase size={48} className="text-muted"/>
             <span className="sub-text">Datasources</span>
           </div>
           <hr className="full-line" />
@@ -202,20 +258,20 @@ const Sidebar = ({}) => {
                         >
                           <span className="column-icons">
                             {col.type.includes("int") ||
-                              col.type.includes("numeric") ||
-                              col.type.includes("float") ||
-                              col.type.includes("double") ||
-                              col.type.includes("decimal")
+                            col.type.includes("numeric") ||
+                            col.type.includes("float") ||
+                            col.type.includes("double") ||
+                            col.type.includes("decimal")
                               ? "123"
                               : col.type.includes("char") ||
                                 col.type.includes("text") ||
                                 col.type.includes("string")
-                                ? "ABC"
-                                : col.type.includes("date") ||
-                                  col.type.includes("time") ||
-                                  col.type.includes("timestamp")
-                                  ? "DATE"
-                                  : "🔗"}
+                              ? "ABC"
+                              : col.type.includes("date") ||
+                                col.type.includes("time") ||
+                                col.type.includes("timestamp")
+                              ? "DATE"
+                              : "🔗"}
                           </span>
                           {col.name}
                         </div>
@@ -237,19 +293,19 @@ const Sidebar = ({}) => {
         setCanvasQuery={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
       />
-      <SidebarDiagram
+      <SidebarDiagram 
         onVisualizationTypeChange={handleVisualizationTypeChange}
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
-        visualizationConfig={visualizationConfig} 
+        visualizationConfig={visualizationConfig}
       />
-      <SidebarQuery
-        onQuerySubmit={handleQuerySubmit}
-        onVisualizationTypeChange={handleVisualizationTypeChange} />
-      <Canvas
-        data={canvasData}
-        query={addNewVisualization ? canvasQuery : ""}
-        visualizationType={addNewVisualization ? visualizationType : ""}
+      <SidebarQuery 
+        onQuerySubmit={handleQuerySubmit} 
+        onVisualizationTypeChange={handleVisualizationTypeChange}/>
+      <Canvas 
+        data={canvasData} 
+        query={addNewVisualization ? canvasQuery : ""} 
+        visualizationType={addNewVisualization ? visualizationType : ""} 
         visualizationConfig={visualizationConfig}
         onVisualizationSelect={handleVisualizationSelect}
         selectedVisualization={selectedVisualization}

@@ -273,4 +273,4 @@ const closeButtonStyles = {
   justifyContent: "center",
 };
 
-export default DataTableComponent;
+export default React.memo(DataTableComponent);

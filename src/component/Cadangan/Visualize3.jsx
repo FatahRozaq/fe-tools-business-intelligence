@@ -3,7 +3,68 @@ import Chart from "react-apexcharts";
 import axios from "axios";
 import config from "../config"; // Assuming this path is correct
 
-// DataTableComponent for table view
+// Card Component for displaying single value
+const CardComponent = ({ data, labelKey, valueKey, visualizationConfig }) => {
+  if (!data || data.length === 0) {
+    return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
+  }
+
+  // Get the first row's value
+  const firstRow = data[0];
+  const label = firstRow[labelKey];
+  const value = firstRow[valueKey];
+  
+  // Format value if it's a number
+  const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
+  
+  // Get styling from config or use defaults
+  const vc = visualizationConfig || {};
+  const cardStyle = {
+    backgroundColor: vc.backgroundColor || "#ffffff",
+    color: vc.fontColor || "#333333",
+    fontFamily: vc.fontFamily || "Arial",
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    border: vc.borderType !== "none" ? `${vc.borderWidth || 1}px ${vc.borderType || "solid"} ${vc.borderColor || "#e0e0e0"}` : "none",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    padding: "1.5rem"
+  };
+  
+  const titleStyle = {
+    fontSize: `${vc.titleFontSize || 18}px`,
+    fontWeight: "bold",
+    color: vc.titleFontColor || "#333333",
+    marginBottom: "0.5rem",
+    textAlign: vc.titlePosition || "center"
+  };
+  
+  const valueStyle = {
+    fontSize: `${vc.valueFontSize || 32}px`,
+    fontWeight: "bold",
+    color: vc.valueFontColor || "#4CAF50",
+    textAlign: "center",
+    margin: "1rem 0"
+  };
+  
+  const labelStyle = {
+    fontSize: `${vc.categoryTitleFontSize || 14}px`,
+    color: vc.categoryTitleFontColor || "#666666",
+    textAlign: "center"
+  };
+
+  return (
+    <div style={cardStyle}>
+      {vc.title && <div style={titleStyle}>{vc.title}</div>}
+      <div style={valueStyle}>{formattedValue}</div>
+      <div style={labelStyle}>{label}</div>
+    </div>
+  );
+};
+
+// DataTable Component
 const DataTableComponent = ({ data, query }) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data tabel tidak tersedia.</div>;
@@ -48,19 +109,27 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
     visualizationType || requestPayload?.visualizationType || "bar"
   );
   
-  // Update active visualization type when prop changes
   useEffect(() => {
     if (visualizationType) {
       setActiveVisualizationType(visualizationType);
     }
   }, [visualizationType]);
 
-  // Reset state when request payload changes
   useEffect(() => {
     setVisualizationData(null);
     setSavedVisualizationId(null);
     setStatus({ loading: true, error: null });
   }, [requestPayload]);
+
+  const handleVisualizationTypeChange = (newType) => {
+    setActiveVisualizationType(newType);
+    if (visualizationData) {
+      // Only reformat chart data for chart types, not for table or card
+      if (newType !== "table" && newType !== "card") {
+        reformatChartData(newType, visualizationData.rawData, visualizationData.labelKey, visualizationData.valueKeys, visualizationData.colors);
+      }
+    }
+  };
   
   const reformatChartData = (chartType, rawData, labelKey, valueKeys, currentColors) => {
     if (!rawData) return;
@@ -157,8 +226,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
           fontSize: `${vc.titleFontSize || 18}px`,
           fontWeight: titleTextStyleProps.fontWeight,
           fontFamily: vc.titleFontFamily || "Arial",
-          fontStyle: vc.titleFontStyle || "italic", // normal, italic, oblique
-          textDecoration: vc.titleTextDecoration || "underline", // none, underline, line-through
+          fontStyle: titleTextStyleProps.fontStyle,
           color: vc.titleFontColor || "#333333", 
         },
       },
@@ -182,7 +250,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
         borderColor: vc.gridColor || "#E0E0E0",
         strokeDashArray: vc.gridType === "dashed" ? 4 : (vc.gridType === "dotted" ? 2 : 0),
         position: 'back',
-        xaxis: { lines: { show: false } },
+        xaxis: { lines: { show: true } },
         yaxis: { lines: { show: true } },
       },
       fill: {
@@ -390,7 +458,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
         
         const currentChartColors = visualizationConfig?.colors || ["#4CAF50", "#FF9800", "#2196F3"];
         
-        // Store raw data even for table view
+        // Store raw data for all visualization types
         setVisualizationData({
           rawData: data,
           labelKey,
@@ -398,8 +466,8 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
           colors: currentChartColors
         });
         
-        // Only reformat for chart types, not for table
-        if (activeVisualizationType !== "table") {
+        // Only reformat for chart types, not for table or card
+        if (activeVisualizationType !== "table" && activeVisualizationType !== "card") {
           reformatChartData(activeVisualizationType, data, labelKey, valueKeys, currentChartColors);
         }
         
@@ -449,7 +517,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
 
 
   useEffect(() => {
-    if (visualizationData && visualizationData.rawData && activeVisualizationType !== "table") {
+    if (visualizationData && visualizationData.rawData && activeVisualizationType !== "table" && activeVisualizationType !== "card") {
       reformatChartData(
         activeVisualizationType,
         visualizationData.rawData,
@@ -460,6 +528,36 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeVisualizationType]);
+
+
+  const renderChartControls = () => {
+    const chartOptionsList = [
+      { type: "bar", label: "Batang" },
+      { type: "line", label: "Line" },
+      { type: "pie", label: "Pie" },
+      { type: "donut", label: "Donut" },
+      { type: "table", label: "Tabel" },
+      { type: "card", label: "Card" } // Tambahkan opsi Card
+    ];
+
+    return (
+      <div className="chart-controls flex mb-4 gap-2">
+        {chartOptionsList.map((option) => (
+          <button
+            key={option.type}
+            className={`px-3 py-1 rounded text-sm ${
+              activeVisualizationType === option.type
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+            onClick={() => handleVisualizationTypeChange(option.type)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
   if (status.error) return <div className="p-4 text-red-600 text-center">Error: {status.error}</div>;
@@ -482,7 +580,23 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
   if (activeVisualizationType === "table") { 
     return (
       <div style={chartContainerStyle}>
+        {renderChartControls()}
         <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
+      </div>
+    );
+  }
+
+  // For card view
+  if (activeVisualizationType === "card") {
+    return (
+      <div style={chartContainerStyle}>
+        {renderChartControls()}
+        <CardComponent 
+          data={visualizationData.rawData} 
+          labelKey={visualizationData.labelKey} 
+          valueKey={visualizationData.valueKeys[0]}
+          visualizationConfig={visualizationConfig}
+        />
       </div>
     );
   }
@@ -490,6 +604,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
   // For chart views (bar, line, pie, donut)
   return (
     <div style={chartContainerStyle}>
+      {renderChartControls()}
       {visualizationData.options && visualizationData.series && (
         <Chart
           options={visualizationData.options}

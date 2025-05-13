@@ -5,9 +5,11 @@ import FooterBar from "./FooterBar";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { GrDatabase } from "react-icons/gr";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPlus, FaFilter, FaTableColumns } from "react-icons/fa6";
+import { MdPublish } from "react-icons/md";
 import AddButton from "./Button/AddButton";
 import SubmitButton from "./Button/SubmitButton";
+import { Toast } from "primereact/toast";
 
 const SidebarData = ({
   fetchData,
@@ -15,31 +17,48 @@ const SidebarData = ({
   setCanvasData,
   setCanvasQuery,
   selectedTable,
+  onVisualizationTypeChange
 }) => {
+  // Reference for toast notifications
+  const toast = React.useRef(null);
+
+  // Form state
   const [dimensiInputs, setDimensiInputs] = useState([""]);
   const [metrikInputs, setMetrikInputs] = useState([]);
-  const [showFooter, setShowFooter] = useState(false);
+  const [metrikAggregation, setMetrikAggregation] = useState([]);
   const [filters, setFilters] = useState([
     { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" },
   ]);
+  const [showFooter, setShowFooter] = useState(false);
 
-  const [showPopup, setShowPopup] = useState(false);
+  // Join state
   const [joinDimensiIndexes, setJoinDimensiIndexes] = useState([]);
-  const [tables, setTables] = useState([]);
-  const [selectedJoinTable, setSelectedJoinTable] = useState([]);
+  const [joinDimensiData, setJoinDimensiData] = useState([]); // For dimension joins
+  const [joinMetrikData, setJoinMetrikData] = useState([]); // For metric joins
 
-  const [selectedJoinTableMetrik, setSelectedJoinTableMetrik] = useState([]);
+  // Dialog state
+  const [showPopup, setShowPopup] = useState(false);
   const [showPopupMetrik, setShowPopupMetrik] = useState(false);
-
-  const [joinDimensiData, setJoinDimensiData] = useState([]); // Untuk join dimensi
-  const [joinMetrikData, setJoinMetrikData] = useState([]); // Untuk join metri
-
-  const [metrikAggregation, setMetrikAggregation] = useState([]);
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
 
+  // Selected options
+  const [tables, setTables] = useState([]);
+  const [selectedJoinTable, setSelectedJoinTable] = useState("");
+  const [selectedJoinTableMetrik, setSelectedJoinTableMetrik] = useState("");
   const [selectedJoinType, setSelectedJoinType] = useState("INNER");
   const [selectedJoinTypeMetrik, setSelectedJoinTypeMetrik] = useState("INNER");
 
+  // Flag for visualization creation
+  const [readyToCreateVisualization, setReadyToCreateVisualization] =
+    useState(false);
+
+  // New state for drag and drop
+  const [dragOver, setDragOver] = useState({
+    dimensi: Array(dimensiInputs.length).fill(false),
+    metrik: Array(metrikInputs.length).fill(false),
+  });
+
+  // Fetch available tables on component mount
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
@@ -47,103 +66,137 @@ const SidebarData = ({
         if (response.data.success) {
           setTables(response.data.data);
         } else {
-          console.log("Gagal mengambil tabel", response.data.message);
+          console.log("Failed to fetch tables", response.data.message);
+          showToast("error", "Error", "Failed to fetch tables");
         }
       })
       .catch((error) => {
-        console.error("Terjadi kesalahan saat mengambil daftar tabel", error);
+        console.error("Error occurred while fetching tables", error);
+        showToast("error", "Error", "Failed to load tables");
       });
   }, []);
 
+  // Update drag over state when dimensiInputs or metrikInputs change
   useEffect(() => {
-    // Pastikan dimensi hanya berisi nama kolom, tanpa tabel
-    console.log("Dimensi yang terkirim:", dimensiInputs);
-  }, [dimensiInputs]);
+    setDragOver({
+      dimensi: Array(dimensiInputs.length).fill(false),
+      metrik: Array(metrikInputs.length).fill(false),
+    });
+  }, [dimensiInputs.length, metrikInputs.length]);
 
+  // Format column name from JSON or object
+  const formatColumnName = (data, type) => {
+    try {
+      // Check if data is a JSON string, parse if yes
+      if (typeof data === "string" && data.trim().startsWith("{")) {
+        const parsedData = JSON.parse(data);
+        return parsedData.columnName || "";
+      }
+
+      // If data is already an object, get columnName directly
+      return data && data.columnName ? data.columnName : "";
+    } catch (error) {
+      return ""; // Return empty string if there's an error
+    }
+  };
+
+  // Toast notification helper
+  const showToast = (severity, summary, detail) => {
+    toast.current?.show({
+      severity: severity,
+      summary: summary,
+      detail: detail,
+      life: 3000,
+    });
+  };
+
+  // Handle dimension input addition
   const handleAddDimensi = () => {
     const lastDimensi = dimensiInputs[dimensiInputs.length - 1];
     if (lastDimensi.trim() === "") {
-      setDimensiInputs([...dimensiInputs, ""]);
+      showToast(
+        "warn",
+        "Warning",
+        "Please fill the current dimension before adding a new one"
+      );
     } else {
       setShowPopup(true);
     }
   };
 
+  // Handle metric input addition
   const handleAddMetrik = () => {
-    setShowPopupMetrik(true); // Open the popup to select the table and join type for the metric
-    setWaitingForConfirmation(true); // Set waiting state to true
+    setShowPopupMetrik(true);
+    setWaitingForConfirmation(true);
   };
 
-  const formatColumnName = (data, type) => {
-    try {
-      // Memeriksa apakah data adalah string JSON, jika ya, parsing
-      if (typeof data === "string") {
-        const parsedData = JSON.parse(data);
-        return (
-          parsedData[type === "dimensi" ? "columnName" : "columnName"] || ""
-        ); // Ambil columnName
-      }
+  // Handle dimension input change
+  const handleDimensiChange = (index, event) => {
+    const newDimensiInputs = [...dimensiInputs];
+    newDimensiInputs[index] = event.target.value;
+    setDimensiInputs(newDimensiInputs);
+  };
 
-      // Jika data sudah berupa objek, langsung ambil columnName
-      return data && data[type === "dimensi" ? "columnName" : "columnName"]
-        ? data[type === "dimensi" ? "columnName" : "columnName"]
-        : "";
-    } catch (error) {
-      // console.error('Error formatting columnName:', error);
-      return ""; // Kembalikan string kosong jika ada kesalahan
+  // Handle metric input change
+  const handleMetrikChange = (index, event) => {
+    const newMetrikInputs = [...metrikInputs];
+    newMetrikInputs[index] = event.target.value;
+    setMetrikInputs(newMetrikInputs);
+  };
+
+  // Handle aggregation type change for metrics
+  const handleAggregationChange = (index, event) => {
+    const newAggregation = [...metrikAggregation];
+    newAggregation[index] = event.target.value;
+    setMetrikAggregation(newAggregation);
+
+    // Combine metric value with selected aggregation
+    const newMetrikInputs = [...metrikInputs];
+    if (
+      newMetrikInputs[index] &&
+      typeof newMetrikInputs[index] === "string" &&
+      newMetrikInputs[index].includes("|")
+    ) {
+      // Update existing aggregation
+      newMetrikInputs[index] =
+        newMetrikInputs[index].split("|")[0] + "|" + event.target.value;
+    } else {
+      // Add new aggregation
+      newMetrikInputs[
+        index
+      ] = `${newMetrikInputs[index]}|${event.target.value}`;
     }
+    setMetrikInputs(newMetrikInputs);
   };
 
-  // Fungsi menampilkan FooterBar
+  // Toggle filter footer
   const handleToggleFooter = () => {
     setShowFooter(!showFooter);
   };
 
-  const handleDimensiChange = (index, event) => {
-    const newDimensiInputs = [...dimensiInputs];
-    newDimensiInputs[index] = event.target.value; // Memasukkan format tableName.columnName
-    setDimensiInputs(newDimensiInputs);
-  };
-
-  const handleMetrikChange = (index, event) => {
-    const newMetrikInputs = [...metrikInputs];
-    newMetrikInputs[index] = event.target.value; // Menyimpan nilai input metriks
-    setMetrikInputs(newMetrikInputs);
-  };
-
-  const handleAggregationChange = (index, event) => {
-    const newAggregation = [...metrikAggregation];
-    newAggregation[index] = event.target.value; // Menyimpan jenis agregasi
-    setMetrikAggregation(newAggregation);
-
-    // Gabungkan nilai metrik dengan agregasi yang dipilih
-    const newMetrikInputs = [...metrikInputs];
-    newMetrikInputs[index] = `${newMetrikInputs[index]}|${event.target.value}`; // Format menjadi columnName|AGGREGATION
-    setMetrikInputs(newMetrikInputs);
-  };
-
+  // Handle applied filters
   const handleApplyFilters = (newFilters, appliedFilters) => {
     console.log("Filters applied:", appliedFilters);
     setFilters(newFilters);
-    sendDataToAPI(); // Kirim ulang data setelah filter diterapkan
+    showToast("success", "Success", "Filters applied successfully");
   };
 
+  // Handle dimension join selection
   const handleJoinSelection = (type) => {
-    // Menambahkan tipe join dan tabel saat pengguna mengklik OK
+    // Add join type and table when user confirms
     const newJoinDimensiIndexes = [...joinDimensiIndexes];
     const lastDimensiIndex = dimensiInputs.length - 1;
 
     const newJoinData = [...joinDimensiData];
-    const selectedTableForJoin = selectedJoinTable;
 
-    // Update join data dengan tabel yang dipilih dan tipe join
+    // Update join data with selected table and join type
     newJoinData[lastDimensiIndex] = {
-      tabel: selectedTableForJoin,
+      tabel: selectedJoinTable,
       join_type: type,
     };
 
     if (type !== "tanpa join") {
-      newJoinDimensiIndexes.push(lastDimensiIndex); // Menambahkan ke index join jika bukan "tanpa join"
+      newJoinDimensiIndexes.push(lastDimensiIndex);
     } else {
       const updatedIndexes = newJoinDimensiIndexes.filter(
         (index) => index !== lastDimensiIndex
@@ -156,18 +209,19 @@ const SidebarData = ({
       newJoinData[lastDimensiIndex] = { tabel: "", join_type: "tanpa join" };
     }
 
-    // Set data join dan update index join
+    // Set join data and update join indexes
     setJoinDimensiData(newJoinData);
     setJoinDimensiIndexes(newJoinDimensiIndexes);
 
-    // Menambahkan input Dimensi baru dengan menambahkan string kosong ke array dimensiInputs
+    // Add a new empty dimension input
     setDimensiInputs([...dimensiInputs, ""]);
 
-    setShowPopup(false); // Menutup popup setelah konfirmasi
+    setShowPopup(false);
+    showToast("success", "Success", "Dimension join added");
   };
 
+  // Handle metric join selection
   const handleJoinSelectionMetrik = (type) => {
-    // Add join type and table when user clicks OK
     if (waitingForConfirmation) {
       const newJoinData = [...joinMetrikData];
       const lastMetrikIndex = metrikInputs.length;
@@ -185,83 +239,156 @@ const SidebarData = ({
       }
 
       setJoinMetrikData(newJoinData);
-      setMetrikInputs([...metrikInputs, ""]); // Add new input after confirmation
-      setShowPopupMetrik(false); // Close the popup after confirmation
-      setWaitingForConfirmation(false); // Reset waiting state
+      setMetrikInputs([...metrikInputs, ""]);
+      setMetrikAggregation([...metrikAggregation, "COUNT"]); // Default aggregation
+
+      setShowPopupMetrik(false);
+      setWaitingForConfirmation(false);
+      showToast("success", "Success", "Metric join added");
     }
   };
 
+  // Reset form to create a new visualization
+  const resetForm = () => {
+    setDimensiInputs([""]);
+    setMetrikInputs([]);
+    setMetrikAggregation([]);
+    setFilters([
+      { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" },
+    ]);
+    setJoinDimensiIndexes([]);
+    setJoinDimensiData([]);
+    setJoinMetrikData([]);
+    setReadyToCreateVisualization(false);
+    showToast("info", "Info", "Form reset for new visualization");
+  };
+
+  // Send data to API to create visualization
   const sendDataToAPI = () => {
-    const firstDimensi = dimensiInputs[0];
+    // Validation
+    if (
+      dimensiInputs.length === 1 &&
+      dimensiInputs[0].trim() === "" &&
+      metrikInputs.length === 0
+    ) {
+      showToast(
+        "error",
+        "Error",
+        "Please add at least one dimension or metric"
+      );
+      return;
+    }
+
+    // Get table from first dimension or metric
     let table = "";
 
-    if (firstDimensi) {
-      // Jika dimensi pertama ada, ambil tabel dari dimensi pertama
+    if (dimensiInputs[0] && dimensiInputs[0].trim() !== "") {
       try {
-        const parsedDimensi = JSON.parse(firstDimensi);
+        const parsedDimensi =
+          typeof dimensiInputs[0] === "string" &&
+          dimensiInputs[0].trim().startsWith("{")
+            ? JSON.parse(dimensiInputs[0])
+            : dimensiInputs[0];
         table = parsedDimensi.tableName || "";
       } catch (e) {
-        console.error("Failed to parse firstDimensi:", e);
+        console.error("Failed to parse first dimension:", e);
       }
-    } else {
-      // Jika dimensi tidak ada, gunakan tabel dari metriks pertama
-      const firstMetrik = metrikInputs[0];
-      if (firstMetrik) {
-        try {
-          const parsedMetrik = JSON.parse(firstMetrik);
-          table = parsedMetrik.tableName || ""; // Ambil tabel dari metriks pertama
-        } catch (e) {
-          console.error("Failed to parse firstMetrik:", e);
-        }
+    } else if (metrikInputs[0]) {
+      try {
+        const parsedMetrik =
+          typeof metrikInputs[0] === "string" &&
+          metrikInputs[0].trim().startsWith("{")
+            ? JSON.parse(metrikInputs[0].split("|")[0])
+            : metrikInputs[0];
+        table = parsedMetrik.tableName || "";
+      } catch (e) {
+        console.error("Failed to parse first metric:", e);
       }
     }
 
+    // If still no table, use selected table
+    if (!table && selectedTable) {
+      table = selectedTable;
+    }
+
+    // Format dimensions
     const dimensi = dimensiInputs
       .map((dimensi) => {
         try {
-          const parsedDimensi = JSON.parse(dimensi);
+          if (!dimensi || dimensi.trim() === "") return "";
+
+          const parsedDimensi =
+            typeof dimensi === "string" && dimensi.trim().startsWith("{")
+              ? JSON.parse(dimensi)
+              : dimensi;
+
           return parsedDimensi.tableName && parsedDimensi.columnName
             ? `${parsedDimensi.tableName}.${parsedDimensi.columnName}`
             : "";
         } catch (e) {
-          console.error("Failed to parse dimensi item:", e);
+          console.error("Failed to parse dimension item:", e);
           return "";
         }
       })
       .filter((input) => input && input.trim() !== "");
 
+    // Format metrics
     const metriks = metrikInputs
       .map((metrik, index) => {
         try {
-          const parsedMetrik = JSON.parse(metrik);
-          const aggregation = metrikAggregation[index] || "COUNT"; // Default to 'COUNT' if no aggregation is selected
+          if (!metrik) return "";
+
+          let parsedMetrik, aggregation;
+
+          if (typeof metrik === "string" && metrik.includes("|")) {
+            // If metrik already includes aggregation
+            const [metrikValue, agg] = metrik.split("|");
+            parsedMetrik = metrikValue.trim().startsWith("{")
+              ? JSON.parse(metrikValue)
+              : metrikValue;
+            aggregation = agg;
+          } else {
+            // If metrik doesn't include aggregation
+            parsedMetrik =
+              typeof metrik === "string" && metrik.trim().startsWith("{")
+                ? JSON.parse(metrik)
+                : metrik;
+            aggregation = metrikAggregation[index] || "COUNT";
+          }
+
           return parsedMetrik.tableName && parsedMetrik.columnName
             ? `${parsedMetrik.tableName}.${parsedMetrik.columnName}|${aggregation}`
             : "";
         } catch (e) {
-          console.error("Failed to parse metrik item:", e);
+          console.error("Failed to parse metric item:", e);
           return "";
         }
       })
       .filter((input) => input && input.trim() !== "");
 
+    // Combine joins
     const tabelJoin = [
       ...joinDimensiData.filter(
         (dimensiJoin) =>
-          dimensiJoin.tabel && dimensiJoin.join_type !== "tanpa join"
+          dimensiJoin &&
+          dimensiJoin.tabel &&
+          dimensiJoin.join_type !== "tanpa join"
       ),
       ...joinMetrikData.filter(
         (metrikJoin) =>
-          metrikJoin.tabel && metrikJoin.join_type !== "tanpa join"
+          metrikJoin &&
+          metrikJoin.tabel &&
+          metrikJoin.join_type !== "tanpa join"
       ),
     ];
 
+    // Format filters
     const parsedFilters = filters
       .filter((filter) => filter.column && filter.operator)
       .map((filter) => {
-        const column = filter.column.includes("")
+        const column = filter.column.includes(".")
           ? filter.column
-          : `${selectedTable}.${filter.column}`;
+          : `${table || selectedTable}.${filter.column}`;
         return {
           column,
           operator: filter.operator,
@@ -271,52 +398,167 @@ const SidebarData = ({
         };
       });
 
-    // Kirim data ke API
+    // Request payload
+    const payload = {
+      tabel: table,
+      dimensi,
+      metriks,
+      tabel_join: tabelJoin,
+      filters: parsedFilters,
+    };
+
+    console.log("Sending data to API:", payload);
+
+    // Send to API
     axios
-      .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, {
-        tabel: table, // Gunakan tabel dari dimensi pertama atau metriks pertama
-        dimensi,
-        metriks, // Kirim metriks yang sudah terformat
-        tabel_join: tabelJoin, // Gabungkan join dimensi dan join metrik
-        filters: parsedFilters, // Kirim filter
-      })
+      .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, payload)
       .then((response) => {
         if (response.data.success) {
-          console.log("Data berhasil dikirim", response.data.data);
+          console.log("Data sent successfully", response.data.data);
           setCanvasData(response.data.data);
           setCanvasQuery(response.data.query);
+          setReadyToCreateVisualization(true);
+          showToast(
+            "success",
+            "Success",
+            "Data fetched successfully. Select a visualization type to display."
+          );
+          onVisualizationTypeChange("bar");
         } else {
-          console.log("Gagal mengirim data", response.data.message);
+          console.log("Failed to send data", response.data.message);
+          showToast(
+            "error",
+            "Error",
+            `Failed to fetch data: ${response.data.message}`
+          );
         }
       })
       .catch((error) => {
-        console.error("Terjadi kesalahan saat mengirim data", error);
+        console.error("Error occurred while sending data", error);
+        showToast("error", "Error", "Failed to fetch data");
       });
+  };
+
+  // New drag and drop handler functions
+  const handleDragOver = (e, type, index) => {
+    e.preventDefault();
+
+    // Update dragOver state based on type and index
+    const newDragOver = { ...dragOver };
+    if (type === "dimensi") {
+      newDragOver.dimensi = dragOver.dimensi.map((item, i) => i === index);
+    } else {
+      newDragOver.metrik = dragOver.metrik.map((item, i) => i === index);
+    }
+    setDragOver(newDragOver);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+
+    // Reset dragOver state
+    setDragOver({
+      dimensi: Array(dimensiInputs.length).fill(false),
+      metrik: Array(metrikInputs.length).fill(false),
+    });
+  };
+
+  const handleDrop = (e, type, index) => {
+    e.preventDefault();
+
+    try {
+      // Get data from drag operation - FIXED to match the MIME type used in Sidebar.jsx
+      const data = e.dataTransfer.getData("text/plain");
+      if (!data) {
+        console.error("No data received from drag operation");
+        showToast("error", "Error", "Invalid data format");
+        return;
+      }
+
+      const columnData = JSON.parse(data);
+
+      // Update dimensions or metrics based on drop target
+      if (type === "dimensi") {
+        const newDimensiInputs = [...dimensiInputs];
+        newDimensiInputs[index] = JSON.stringify(columnData);
+        setDimensiInputs(newDimensiInputs);
+      } else {
+        const newMetrikInputs = [...metrikInputs];
+        newMetrikInputs[index] = JSON.stringify(columnData);
+        setMetrikInputs(newMetrikInputs);
+      }
+
+      showToast("success", "Success", `Column added to ${type}`);
+    } catch (error) {
+      console.error("Error processing dropped data:", error);
+      showToast("error", "Error", "Failed to process dragged data");
+    }
+
+    // Reset dragOver state
+    setDragOver({
+      dimensi: Array(dimensiInputs.length).fill(false),
+      metrik: Array(metrikInputs.length).fill(false),
+    });
   };
 
   return (
     <div id="sidebar-data" className="sidebar-2">
+      <Toast ref={toast} />
+
       <div className="sub-title">
         <GrDatabase size={48} className="text-muted" />
         <span className="sub-text">Data</span>
       </div>
       <hr className="full-line" />
+
       <div className="form-diagram">
+        {readyToCreateVisualization && (
+          <div className="alert alert-success mb-3">
+            <p>
+              Data is ready! Select visualization type from the visualization
+              menu.
+            </p>
+            <Button
+              icon="pi pi-plus"
+              label="Create New Visualization"
+              className="p-button-sm mt-2"
+              onClick={resetForm}
+            />
+          </div>
+        )}
+
         <div className="form-group">
-          <span>Dimensi</span>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">
+              <FaTableColumns className="me-2" />
+              Dimensions
+            </span>
+            {/* <small className="text-muted">Drag columns from datasource panel</small> */}
+          </div>
+
           <div id="dimensi-container">
             {dimensiInputs.map((dimensi, index) => (
-              <div key={index} className="dimensi-row">
+              <div
+                key={index}
+                className={`dimensi-row mb-2 drop-target ${
+                  dragOver.dimensi[index] ? "drag-over" : ""
+                }`}
+                onDragOver={(e) => handleDragOver(e, "dimensi", index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, "dimensi", index)}
+              >
                 <input
                   style={{ width: "100%" }}
                   type="text"
-                  className="dimensi-input"
+                  className="dimensi-input form-control"
                   value={formatColumnName(dimensi, "dimensi")}
                   onChange={(e) => handleDimensiChange(index, e)}
+                  placeholder="Drag a column here"
+                  readOnly
                 />
                 {joinDimensiIndexes.includes(index) &&
                   joinDimensiData[index] && (
-                    <span className="join-text">
+                    <span className="join-badge">
                       {joinDimensiData[index].join_type}{" "}
                       {joinDimensiData[index].tabel}
                     </span>
@@ -324,42 +566,32 @@ const SidebarData = ({
               </div>
             ))}
           </div>
+
           <AddButton
-            text="Tambah Dimensi"
+            text="Add Dimension"
             onClick={handleAddDimensi}
             className="mt-2"
+            icon={<FaPlus size={12} />}
           />
         </div>
 
-        {/* Dialog PopUp Join Dimensi */}
+        {/* Dialog PopUp Join Dimension */}
         <Dialog
-          header="Pilih Jenis Dimensi"
+          header="Select Join Type"
           visible={showPopup}
           style={{ width: "50vw" }}
           onHide={() => setShowPopup(false)}
+          draggable={false}
+          resizable={false}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ width: "45%" }}>
-              <h6>
-                Gabungkan Tabel{" "}
-                {joinDimensiData.length > 0 &&
-                joinDimensiData[joinDimensiData.length - 1].tabel
-                  ? joinDimensiData[joinDimensiData.length - 1].tabel
-                  : dimensiInputs.length > 0 && dimensiInputs[0]
-                  ? JSON.parse(dimensiInputs[0]).tableName
-                  : "Pilih Tabel"}
-              </h6>
+          <div className="row">
+            <div className="col-md-6">
+              <h6>Join With Table</h6>
               <select
+                className="form-select"
                 onChange={(e) => setSelectedJoinTable(e.target.value)}
-                style={{ width: "100%" }}
               >
-                <option value="">Pilih Tabel</option>
+                <option value="">Select a table</option>
                 {tables.map((table, idx) => (
                   <option key={idx} value={table}>
                     {table}
@@ -367,98 +599,113 @@ const SidebarData = ({
                 ))}
               </select>
             </div>
-            <div style={{ width: "45%" }}>
-              <h6>Join Tipe</h6>
+            <div className="col-md-6">
+              <h6>Join Type</h6>
               <select
+                className="form-select"
                 onChange={(e) => setSelectedJoinType(e.target.value)}
-                style={{ width: "100%" }}
               >
-                <option value="">Pilih tipe join</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
                 <option value="CROSS">CROSS JOIN</option>
                 <option value="FULL">FULL JOIN</option>
-                <option value="tanpa join">Tanpa Join</option>
+                <option value="tanpa join">No Join</option>
               </select>
             </div>
           </div>
-          <div style={{ marginTop: "20px", textAlign: "right" }}>
+
+          <div className="mt-4 text-end">
             <Button
-              label="OK"
+              label="Apply"
               icon="pi pi-check"
               onClick={() => handleJoinSelection(selectedJoinType)}
-              style={{ marginRight: "10px" }}
+              className="p-button-success me-2"
             />
-
             <Button
-              label="Batal"
+              label="Cancel"
               icon="pi pi-times"
               onClick={() => setShowPopup(false)}
+              className="p-button-secondary"
             />
           </div>
         </Dialog>
 
-        <div className="form-group">
-          <span>Metrik</span>
+        <div className="form-group mt-4">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">Metrics</span>
+            {/* <small className="text-muted">Add calculations for your data</small> */}
+          </div>
+
           <div id="metrik-container">
             {metrikInputs.map((metrik, index) => (
-              <div key={index} className="metrik-row">
-                {joinMetrikData[index] && (
-                  <span className="join-text">
-                    {joinMetrikData[index].join_type}{" "}
-                    {joinMetrikData[index].tabel}
-                  </span>
-                )}
+              <div
+                key={index}
+                className={`metrik-row mb-2 d-flex drop-target ${
+                  dragOver.metrik[index] ? "drag-over" : ""
+                }`}
+                onDragOver={(e) => handleDragOver(e, "metrik", index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, "metrik", index)}
+              >
                 <input
-                  style={{ width: "80%" }}
+                  style={{ width: "75%" }}
                   type="text"
-                  className="metrik-input"
+                  className="metrik-input form-control"
                   value={formatColumnName(metrik, "metrik")}
                   onChange={(e) => handleMetrikChange(index, e)}
+                  placeholder="Drag a column here"
+                  readOnly
                 />
                 <select
-                  style={{ width: "20%" }}
-                  className="metrik-aggregation-dropdown"
+                  style={{ width: "25%" }}
+                  className="form-select metrik-aggregation-dropdown"
                   value={metrikAggregation[index] || "COUNT"}
                   onChange={(e) => handleAggregationChange(index, e)}
                 >
                   <option value="COUNT">COUNT</option>
                   <option value="SUM">SUM</option>
-                  <option value="AVERAGE">AVERAGE</option>
+                  <option value="AVERAGE">AVG</option>
+                  <option value="MIN">MIN</option>
+                  <option value="MAX">MAX</option>
                 </select>
+
+                {joinMetrikData[index] &&
+                  joinMetrikData[index].join_type !== "tanpa join" && (
+                    <span className="join-badge ms-2">
+                      {joinMetrikData[index].join_type}{" "}
+                      {joinMetrikData[index].tabel}
+                    </span>
+                  )}
               </div>
             ))}
           </div>
 
           <AddButton
-            text="Tambah Metrik"
+            text="Add Metric"
             onClick={handleAddMetrik}
             className="mt-2"
+            icon={<FaPlus size={12} />}
           />
         </div>
 
-        {/* Dialog PopUp Join Metrik */}
+        {/* Dialog PopUp Join Metric */}
         <Dialog
-          header="Pilih Jenis Metrik"
+          header="Select Metric Join"
           visible={showPopupMetrik}
           style={{ width: "50vw" }}
           onHide={() => setShowPopupMetrik(false)}
+          draggable={false}
+          resizable={false}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ width: "45%" }}>
-              <h6>Gabungkan Tabel</h6>
+          <div className="row">
+            <div className="col-md-6">
+              <h6>Join With Table</h6>
               <select
+                className="form-select"
                 onChange={(e) => setSelectedJoinTableMetrik(e.target.value)}
-                style={{ width: "100%" }}
               >
-                <option value="">Pilih Tabel</option>
+                <option value="">Select a table</option>
                 {tables.map((table, idx) => (
                   <option key={idx} value={table}>
                     {table}
@@ -466,54 +713,70 @@ const SidebarData = ({
                 ))}
               </select>
             </div>
-            <div style={{ width: "45%" }}>
-              <h6>Join Tipe</h6>
+            <div className="col-md-6">
+              <h6>Join Type</h6>
               <select
+                className="form-select"
                 onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)}
-                style={{ width: "100%" }}
               >
-                <option value="">Pilih Tabel</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
-                <option value="SELF">SELF JOIN</option>
                 <option value="CROSS">CROSS JOIN</option>
                 <option value="FULL">FULL JOIN</option>
-                <option value="tanpa join">Tanpa Join</option>
+                <option value="tanpa join">No Join</option>
               </select>
             </div>
           </div>
-          <div style={{ marginTop: "20px", textAlign: "right" }}>
+
+          <div className="mt-4 text-end">
             <Button
-              label="OK"
+              label="Apply"
               icon="pi pi-check"
               onClick={() => handleJoinSelectionMetrik(selectedJoinTypeMetrik)}
-              style={{ marginRight: "10px" }}
+              className="p-button-success me-2"
             />
-
             <Button
-              label="Batal"
+              label="Cancel"
               icon="pi pi-times"
               onClick={() => setShowPopupMetrik(false)}
+              className="p-button-secondary"
             />
           </div>
         </Dialog>
 
-        <div className="form-group">
-          <span>Tanggal</span>
-          <input type="text" id="tanggal-input" onChange={fetchData} />
-        </div>
-        <div className="form-group">
-          <span>Filter</span>
+        <div className="form-group mt-4">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">
+              <FaFilter className="me-2" />
+              Filters
+            </span>
+          </div>
+
           <AddButton
-            text="Tambah Filter"
+            text="Add Filter"
             onClick={handleToggleFooter}
             className="mt-2"
+            icon={<FaFilter size={12} />}
           />
         </div>
 
-        <SubmitButton onClick={sendDataToAPI} text="Submit" />
+        <div className="d-flex flex-column gap-2 mt-4">
+          <Button
+            label="Reset"
+            // icon="pi pi-refresh"
+            className="p-button-secondary"
+            onClick={resetForm}
+          />
+
+          <SubmitButton
+            onClick={sendDataToAPI}
+            text="Fetch Data"
+            // icon={<MdPublish size={16} />}
+          />
+        </div>
       </div>
+
       {showFooter && (
         <FooterBar
           filters={filters}
@@ -522,6 +785,35 @@ const SidebarData = ({
           handleToggleFooter={handleToggleFooter}
         />
       )}
+
+      <style jsx>{`
+        .join-badge {
+          background-color: #e3f2fd;
+          color: #1565c0;
+          font-size: 0.75rem;
+          padding: 2px 6px;
+          border-radius: 4px;
+          margin-top: 4px;
+          display: inline-block;
+        }
+
+        .sidebar-2 {
+          max-height: 100vh;
+          overflow-y: auto;
+          padding-bottom: 60px;
+        }
+
+        .drop-target {
+          border: 2px dashed transparent;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+
+        .drag-over {
+          border: 2px dashed #2196f3;
+          background-color: rgba(33, 150, 243, 0.1);
+        }
+      `}</style>
     </div>
   );
 };
