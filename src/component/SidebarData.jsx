@@ -605,6 +605,7 @@ const SidebarData = ({
                 className="form-select"
                 onChange={(e) => setSelectedJoinType(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
@@ -719,6 +720,7 @@ const SidebarData = ({
                 className="form-select"
                 onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
