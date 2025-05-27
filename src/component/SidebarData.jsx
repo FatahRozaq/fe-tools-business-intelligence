@@ -7,6 +7,7 @@ import { Dialog } from "primereact/dialog";
 import { GrDatabase } from "react-icons/gr";
 import { FaPlus, FaFilter, FaTableColumns } from "react-icons/fa6";
 import { MdPublish } from "react-icons/md";
+import { Calendar } from 'primereact/calendar';
 import AddButton from "./Button/AddButton";
 import SubmitButton from "./Button/SubmitButton";
 import { Toast } from "primereact/toast";
@@ -30,6 +31,13 @@ const SidebarData = ({
     { mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" },
   ]);
   const [showFooter, setShowFooter] = useState(false);
+
+  // Date range state
+  const [showPopupDate, setShowpopupDate] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [dateColumnsData, setDateColumnsData] = useState(null);
 
   // Join state
   const [joinDimensiIndexes, setJoinDimensiIndexes] = useState([]);
@@ -246,6 +254,185 @@ const SidebarData = ({
       setWaitingForConfirmation(false);
       showToast("success", "Success", "Metric join added");
     }
+  };
+
+  // Extract date columns from table
+  // DataParser utility (dari kode sebelumnya)
+const DataParser = {
+  parseDimensi: (dimensi) => {
+    try {
+      return typeof dimensi === "string" && dimensi.trim().startsWith("{")
+        ? JSON.parse(dimensi)
+        : dimensi;
+    } catch (e) {
+      console.error("Failed to parse dimension:", e);
+      return null;
+    }
+  },
+
+  parseMetrik: (metrik) => {
+    try {
+      if (typeof metrik === "string" && metrik.includes("|")) {
+        const [metrikValue] = metrik.split("|");
+        return metrikValue.trim().startsWith("{")
+          ? JSON.parse(metrikValue)
+          : metrikValue;
+      } else {
+        return typeof metrik === "string" && metrik.trim().startsWith("{")
+          ? JSON.parse(metrik)
+          : metrik;
+      }
+    } catch (e) {
+      console.error("Failed to parse metric:", e);
+      return null;
+    }
+  },
+
+  getTableAndColumn: (dimensiInputs, metrikInputs, selectedTable) => {
+    let table = "";
+    let column = "";
+
+    if (dimensiInputs[0] && dimensiInputs[0].trim() !== "") {
+      const parsed = DataParser.parseDimensi(dimensiInputs[0]);
+      if (parsed) {
+        table = parsed.tableName || "";
+        column = parsed.columnName || "";
+      }
+    }
+
+    if ((!table || !column) && metrikInputs[0]) {
+      const parsed = DataParser.parseMetrik(metrikInputs[0]);
+      if (parsed) {
+        table = parsed.tableName || "";
+        column = parsed.columnName || "";
+      }
+    }
+
+    if (!table && selectedTable) {
+      table = selectedTable;
+    }
+
+    return { table, column };
+  }
+};
+
+// Fungsi extract date columns
+const extractDateColumns = async () => {
+  try {
+    setLoadingDateColumns(true);
+    
+    const { table, column } = DataParser.getTableAndColumn(
+      dimensiInputs, 
+      metrikInputs, 
+      selectedTable
+    );
+
+    if (!table || !column) {
+      showToast(
+        "error",
+        "Error",
+        "Please select at least one dimension or metric first"
+      );
+      return null;
+    }
+
+    const payload = { tabel: table, kolom: column };
+    
+    const response = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/check-date`,payload);
+
+    if (response.data.success) {
+      const result = {
+        table,
+        excludedColumn: column,
+        hasDateColumns: response.data.has_date_column,
+        dateColumns: response.data.date_columns || []
+      };
+
+      setDateColumnsData(result);
+      
+      if (result.dateColumns.length > 0) {
+        showToast(
+          "success",
+          "Success",
+          `Found ${result.dateColumns.length} date column(s)`
+        );
+      } else {
+        showToast(
+          "info",
+          "Info",
+          `No date columns available in table ${table}`
+        );
+      }
+      
+      return result;
+    } else {
+      showToast("error", "Error", response.data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error checking date columns:", error);
+    showToast("error", "Error", "Failed to check date columns");
+    return null;
+  } finally {
+    setLoadingDateColumns(false);
+  }
+};
+
+// 4. Modified handleDateRange function
+const handleDateRange = async () => {
+  // Extract date columns first
+  const result = await extractDateColumns();
+  
+  if (result && result.dateColumns.length > 0) {
+    // Open dialog if date columns found
+    setShowpopupDate(true);
+  } else if (result && result.dateColumns.length === 0) {
+    // No date columns available
+    showToast(
+      "warning",
+      "Warning", 
+      "No date columns available for filtering"
+    );
+  }
+  // Error cases already handled in extractDateColumns
+};
+
+  const applyDateRange = () => {
+    if (!selectedDate || !startDate || !endDate) {
+      // Tambahkan validasi jika diperlukan
+      return;
+    }
+    
+    // Format tanggal untuk filter
+    const formattedStartDate = startDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    const formattedEndDate = endDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    
+    // Buat filter baru dengan operator between
+    const newFilter = {
+      mode: 'include',
+      column: selectedDate,
+      operator: 'between',
+      value1: formattedStartDate,
+      value2: formattedEndDate,
+      logic: filters.length > 0 ? filters[0].logic : 'and'
+    };
+    addDateRangeFilter(newFilter);
+    sendDataToAPI();
+    
+    setShowpopupDate(false);
+  };
+
+  // Fungsi untuk menambahkan filter rentang tanggal
+  const addDateRangeFilter = (newFilter) => {
+    // Jika ingin menggunakan fungsi addFilter yang sudah ada
+    addFilter();
+    
+    // Update filter terakhir dengan nilai rentang tanggal
+    const lastIndex = filters.length;
+    handleFilterChange(lastIndex, 'column', newFilter.column);
+    handleFilterChange(lastIndex, 'operator', newFilter.operator);
+    handleFilterChange(lastIndex, 'value1', newFilter.value1);
+    handleFilterChange(lastIndex, 'value2', newFilter.value2);
   };
 
   // Reset form to create a new visualization
@@ -605,6 +792,7 @@ const SidebarData = ({
                 className="form-select"
                 onChange={(e) => setSelectedJoinType(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
@@ -719,6 +907,7 @@ const SidebarData = ({
                 className="form-select"
                 onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
@@ -741,6 +930,87 @@ const SidebarData = ({
               icon="pi pi-times"
               onClick={() => setShowPopupMetrik(false)}
               className="p-button-secondary"
+            />
+          </div>
+        </Dialog>
+
+        <div className="form-group">
+          <AddButton
+            text="Rentang Tanggal"
+            onClick={handleDateRange}
+            className="mt-2"
+          />
+        </div>
+
+        {/* Dialog PopUp Join Date */}
+        <Dialog
+          header="Pilih Kolom Tanggal"
+          visible={showPopupDate}
+          style={{ width: "60vw" }}
+          onHide={() => {
+          setShowpopupDate(false);
+          setSelectedDate('');
+          setStartDate(null);
+          setEndDate(null);
+        }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "15px",
+            }}
+          >
+            <div style={{ width: "45%" }}>
+              <h6>Pilih Kolom Tanggal</h6>
+              <select
+                onChange={(e) => setSelectedDate(e.target.value)}
+                value={selectedDate}
+                style={{ width: "100%",padding: "8px" }}
+              >
+                <option value="">Pilih Kolom</option>
+                {dateColumnsData?.dateColumns.map((column, idx) => (
+                  <option key={idx} value={column}>
+                    {column}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ width: "45%" }}>
+              <h6>Tanggal Awal</h6>
+              <Calendar
+                value={startDate}
+                onChange={(e) => setStartDate(e.value)}
+                dateFormat="dd/mm/yy"
+                showIcon
+                style={{ width: "100%" }}
+                />
+            </div>
+            <div style={{ width: "45%" }}>
+              <h6>Tanggal Akhir</h6>
+              <Calendar
+                value={endDate}
+                onChange={(e) => setEndDate(e.value)}
+                dateFormat="dd/mm/yy"
+                showIcon
+                style={{ width: "100%" }}
+                />
+            </div>
+
+          </div>
+          <div style={{ marginTop: "20px", textAlign: "right" }}>
+            <Button
+              label="Terapkan"
+              icon="pi pi-check"
+              onClick={applyDateRange}
+              style={{ marginRight: "10px"}}
+              disabled={!selectedDate || !startDate || !endDate}
+            />
+            <Button
+              label="Batal"
+              icon="pi pi-check"
+              onClick={() => setShowpopupDate(false)}
             />
           </div>
         </Dialog>
@@ -783,6 +1053,7 @@ const SidebarData = ({
           setFilters={setFilters}
           handleApplyFilters={handleApplyFilters}
           handleToggleFooter={handleToggleFooter}
+          dimensiInputs={dimensiInputs}
         />
       )}
 
