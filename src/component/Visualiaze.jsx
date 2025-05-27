@@ -499,9 +499,27 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
 
   const chartContainerStyle = {
     backgroundColor: visualizationConfig?.backgroundColor || "#ffffff",
-    padding: "1rem", 
+    paddingTop: "1rem",
+    paddingLeft: "1rem", 
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    width: "100%",
     borderRadius: "8px", 
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)", 
+  };
+
+  const chartWrapperStyle = { // Style untuk wrapper chart/table/card agar bisa grow
+    flexGrow: 1,
+    minHeight: 0, // Penting untuk flex-grow agar bisa menyusut
+    position: 'relative', // Kadang dibutuhkan oleh library chart
+    overflow: 'hidden' // Agar konten chart tidak meluber keluar wrapper ini
+  };
+
+  const scrollableContentWrapperStyle = { // Untuk tabel agar bisa scroll internal
+    flexGrow: 1,
+    minHeight: 0,
+    overflow: 'auto', // Memungkinkan scroll internal untuk tabel/konten panjang
   };
 
   // Check for primary error or no data condition first
@@ -535,7 +553,9 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
       <div style={chartContainerStyle}>
         {renderChartControls()}
         {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
-        <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
+        <div style={chartWrapperStyle}> 
+          <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
+        </div>
       </div>
     );
   }
@@ -545,12 +565,14 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
       <div style={chartContainerStyle}>
         {renderChartControls()}
         {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
-        <CardComponent 
-          data={visualizationData.rawData} 
-          labelKey={visualizationData.labelKey} 
-          valueKey={visualizationData.valueKeys[0]}
-          visualizationConfig={visualizationConfig}
-        />
+        <div style={chartWrapperStyle}> 
+          <CardComponent 
+            data={visualizationData.rawData} 
+            labelKey={visualizationData.labelKey} 
+            valueKey={visualizationData.valueKeys[0]}
+            visualizationConfig={visualizationConfig}
+          />
+        </div>
       </div>
     );
   }
@@ -561,13 +583,15 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
       {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
       {visualizationData.options && visualizationData.series && 
        (activeVisualizationType !== "table" && activeVisualizationType !== "card") && (
+        <div style={chartWrapperStyle}> 
         <Chart
           options={visualizationData.options}
           series={visualizationData.series}
           type={visualizationData.currentType || "bar"}
-          height={380}
+          height="100%"
           width="100%"
         />
+        </div>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import line from "../../assets/img/charts/lines.png";
 import pie from "../../assets/img/charts/pie.png";
 import table from "../../assets/img/charts/table-v2.png";
 import donut from "../../assets/img/charts/donut.png";
+import card from "../../assets/img/charts/card.png";
 
 export const DEFAULT_CONFIG = {
   colors: ["#4CAF50", "#FF9800", "#2196F3"],
@@ -64,5 +65,6 @@ export const visualizationOptions = [
   { type: "line", label: "Line", image: line },
   { type: "pie", label: "Pie", image: pie },
   { type: "donut", label: "Donut", image: donut },
-  { type: "", label: "Tabel", image: table }, // Assuming empty type means table
+  { type: "", label: "Tabel", image: table }, 
+  { type: "card", label: "Card", image: card }, 
 ];
