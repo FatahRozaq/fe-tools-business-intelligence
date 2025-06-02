@@ -12,17 +12,12 @@ const Canvas = ({
   visualizationType,
   visualizationConfig,
   onVisualizationSelect,
-  selectedVisualization,
-  currentCanvasIndex,
-  setCurrentCanvasIndex,
-  canvases,
-  setCanvases
+  selectedVisualization
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // Loading state untuk data awal
   const [pendingSaveTimeouts, setPendingSaveTimeouts] = useState({});
-  const [totalCanvases, setTotalCanvases] = useState(0);
 
   const zoomSpeed = 0.005;
   const containerRef = useRef(null);
@@ -105,17 +100,8 @@ const Canvas = ({
     };
   }, []); // mapApiVisualizationToState tidak punya dependensi luar
 
-useEffect(() => {
-    // Pastikan currentCanvasIndex sudah diambil dari localStorage saat pertama kali
-    const savedIndex = localStorage.getItem("currentCanvasIndex");
-    if (savedIndex !== null) {
-      setCurrentCanvasIndex(parseInt(savedIndex));
-    }
-
-  }, [setCurrentCanvasIndex]);
-
-
-useEffect(() => {
+  // useEffect untuk memuat visualisasi saat komponen mount
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
         console.warn("Loading visualizations timed out.");
@@ -125,12 +111,9 @@ useEffect(() => {
     }, 10000); // Timeout 10 detik
 
     setIsLoading(true);
-    const currentCanvasId = canvases[currentCanvasIndex]?.id;
-    
-    // Mengambil visualisasi berdasarkan ID canvas yang statis (ID 1)
-    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/${currentCanvasId}/visualizations`)
+    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/get-visualizations`)
       .then(response => {
-        console.log("API Response (get-visualizations for canva):", response.data);
+        console.log("API Response (get-visualizations):", response.data);
         if (response.data.status === 'success' && Array.isArray(response.data.data)) {
           const apiVisualizations = response.data.data;
           const loadedVisualizations = apiVisualizations
@@ -153,7 +136,7 @@ useEffect(() => {
 
     // Cleanup timeout saat komponen unmount
     return () => clearTimeout(timeoutId);
-  }, [currentCanvasIndex,canvases, mapApiVisualizationToState]); // Dependency hanya pada mapApiVisualizationToState
+  }, [mapApiVisualizationToState]); // Dependency hanya pada mapApiVisualizationToState
 
   // Fungsi untuk menyimpan visualisasi ke API (dengan workaround untuk config)
   const saveVisualizationToAPI = useCallback((visualization) => {
@@ -171,32 +154,23 @@ useEffect(() => {
   // Stringify objek config
   const configString = JSON.stringify(configObject);
 
-  const currentCanvasId = canvases[currentCanvasIndex]?.id;
-  
-  if (!currentCanvasId) {
-    console.error("Canvas ID is not available.");
-    return Promise.reject("Canvas ID is not available.");
-  }
-
   // Siapkan payload untuk API
   const payload = {
-  // id_canvas: canvases[currentCanvasIndex]?.id,
-  id_canvas: currentCanvasId,
-  id_datasource: visualization.id_datasource, // Wajib ada
-  id_visualization: visualization.id, // Kirim ID jika ada, untuk update
-  name: visualization.title || `Visualisasi ${visualization.type}`, // Default name jika tidak ada
-  visualization_type: visualization.type, // Wajib ada
-  query: visualization.query, // Wajib ada
-  // --- WORKAROUND untuk validasi backend yang mengharuskan config array ---
-  // Kirim string JSON dari config sebagai elemen tunggal dalam sebuah array.
-  config: [configString],
-  // --- AKHIR WORKAROUND ---
-  width: Math.round(visualization.width) || 600, // Default width jika tidak ada
-  height: Math.round(visualization.height) || 400, // Default height jika tidak ada
-  position_x: Math.round(visualization.x) || 0, // Default x jika tidak ada
-  position_y: Math.round(visualization.y) || 0, // Default y jika tidak ada
-};
-
+    id_canvas: visualization.id_canvas || 1, // Default id_canvas jika tidak ada
+    id_datasource: visualization.id_datasource, // Wajib ada
+    id_visualization: visualization.id, // Kirim ID jika ada, untuk update
+    name: visualization.title || `Visualisasi ${visualization.type}`, // Default name jika tidak ada
+    visualization_type: visualization.type, // Wajib ada
+    query: visualization.query, // Wajib ada
+    // --- WORKAROUND untuk validasi backend yang mengharuskan config array ---
+    // Kirim string JSON dari config sebagai elemen tunggal dalam sebuah array.
+    config: [configString],
+    // --- AKHIR WORKAROUND ---
+    width: Math.round(visualization.width) || 600, // Default width jika tidak ada
+    height: Math.round(visualization.height) || 400, // Default height jika tidak ada
+    position_x: Math.round(visualization.x) || 0, // Default x jika tidak ada
+    position_y: Math.round(visualization.y) || 0, // Default y jika tidak ada
+  };
 
   console.log("Saving visualization to API (Payload):", payload);
 
@@ -336,17 +310,10 @@ useEffect(() => {
       const newType = visualizationType;
       const newQuery = query;
       const datasourceId = data.id_datasource || 1; // Pastikan ada id_datasource
-      const currentCanvasId = canvases[currentCanvasIndex]?.id;
-
-      if (!currentCanvasId) {
-        console.error("Canvas ID is not available.");
-        return; // Return early if canvas ID is not available
-      }
-      
 
       const newVisualization = {
         id: tempId,
-        id_canvas: currentCanvasId, // Asumsi canvas ID 1
+        id_canvas: 1, // Asumsi canvas ID 1
         id_datasource: datasourceId, // Penting! Tambahkan id_datasource
         query: newQuery,
         type: newType,
@@ -357,7 +324,6 @@ useEffect(() => {
         width: 600, // Lebar default
         height: 400, // Tinggi default
         requestPayload: { // Buat requestPayload yang stabil
-           id_canvas: currentCanvasId,
            id_datasource: datasourceId,
            query: newQuery,
            visualizationType: newType,

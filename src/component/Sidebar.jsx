@@ -10,6 +10,9 @@ import SidebarQuery from "./SidebarQuery";
 import { AiOutlineDatabase } from "react-icons/ai";
 import { GrDatabase } from "react-icons/gr";
 import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants"; 
+import Header from "./Header";
+import SidebarCanvas from "./SidebarCanvas";
+import Visualiaze from "./Visualiaze";
 
 const Sidebar = ({}) => {
   const [tables, setTables] = useState([]);
@@ -20,6 +23,10 @@ const Sidebar = ({}) => {
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState("");
   const [visualizationType, setVisualizationType] = useState("");
+  const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
+  const [canvases, setCanvases] = useState([]);
+
+  
 
   const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
 
@@ -29,41 +36,54 @@ const Sidebar = ({}) => {
   // Add a new state to track whether we should add a new visualization
   const [addNewVisualization, setAddNewVisualization] = useState(false);
 
-  useEffect(() => {
-    const sidebarData = document.getElementById("sidebar-data");
-    const sidebarDiagram = document.getElementById("sidebar-diagram");
-    const sidebarQuery = document.getElementById("sidebar-query");
+useEffect(() => {
+  const sidebarData = document.getElementById("sidebar-data");
+  const sidebarDiagram = document.getElementById("sidebar-diagram");
+  const sidebarQuery = document.getElementById("sidebar-query");
+  const sidebarCanvas = document.getElementById("sidebar-canvas");
 
-    if (sidebarData && sidebarDiagram && sidebarQuery) {
+  if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas) {
+    sidebarData.style.display = "block";
+    sidebarDiagram.style.display = "none";
+    sidebarQuery.style.display = "none";
+    sidebarCanvas.style.display = "none";
+  }
+
+  const pilihDataBtn = document.getElementById("menu-data");
+  const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+  const pilihQueryBtn = document.getElementById("menu-query");
+  const pilihCanvasBtn = document.getElementById("menu-canvas");
+
+  if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn && pilihCanvasBtn) {
+    pilihDataBtn.addEventListener("click", () => {
       sidebarData.style.display = "block";
       sidebarDiagram.style.display = "none";
       sidebarQuery.style.display = "none";
-    }
+      sidebarCanvas.style.display = "none";
+    });
 
-    const pilihDataBtn = document.getElementById("menu-data");
-    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-    const pilihQueryBtn = document.getElementById("menu-query");
+    pilihVisualisasiBtn.addEventListener("click", () => {
+      sidebarDiagram.style.display = "block";
+      sidebarQuery.style.display = "none";
+      sidebarData.style.display = "none";
+      sidebarCanvas.style.display = "none";
+    });
 
-    if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn) {
-      pilihDataBtn.addEventListener("click", () => {
-        sidebarData.style.display = "block";
-        sidebarDiagram.style.display = "none";
-        sidebarQuery.style.display = "none";
-      });
+    pilihQueryBtn.addEventListener("click", () => {
+      sidebarQuery.style.display = "block";
+      sidebarData.style.display = "none";
+      sidebarDiagram.style.display = "none";
+      sidebarCanvas.style.display = "none";
+    });
 
-      pilihVisualisasiBtn.addEventListener("click", () => {
-        sidebarDiagram.style.display = "block";
-        sidebarQuery.style.display = "none";
-        sidebarData.style.display = "none";
-      });
-
-      pilihQueryBtn.addEventListener("click", () => {
-        sidebarQuery.style.display = "block";
-        sidebarData.style.display = "none";
-        sidebarDiagram.style.display = "none";
-      });
-    }
-  }, []);
+    pilihCanvasBtn.addEventListener("click", () => {
+      sidebarCanvas.style.display = "block";
+      sidebarQuery.style.display = "none";
+      sidebarData.style.display = "none";
+      sidebarDiagram.style.display = "none";
+    });
+  }
+}, []);
 
   useEffect(() => {
     axios
@@ -138,6 +158,22 @@ const Sidebar = ({}) => {
       }));
     }
   };
+
+   useEffect(() => {
+    axios
+      .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
+      .then((response) => {
+        if (response.data.success) {
+          const activeCanvases = response.data.canvases;
+          setCanvases(activeCanvases); // Update canvases state
+        } else {
+          console.error("Failed to fetch canvases:", response.data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching canvases:", error);
+      });
+  }, []);
 
   return (
     <>
@@ -231,6 +267,19 @@ const Sidebar = ({}) => {
         </div>
       )}
 
+      <Header
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
+         canvases={canvases}  // Pass canvases as a prop
+        setCanvases={setCanvases}  // Pass setCanvases to Header component
+      />
+      
+      <SidebarCanvas
+  currentCanvasIndex={currentCanvasIndex}
+  setCurrentCanvasIndex={setCurrentCanvasIndex}
+/>
+
+
       <SidebarData
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
@@ -246,6 +295,7 @@ const Sidebar = ({}) => {
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange} />
+        
       <Canvas
         data={canvasData}
         query={addNewVisualization ? canvasQuery : ""}
@@ -253,8 +303,14 @@ const Sidebar = ({}) => {
         visualizationConfig={visualizationConfig}
         onVisualizationSelect={handleVisualizationSelect}
         selectedVisualization={selectedVisualization}
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex}
+        canvases={canvases}  // Pass canvases to Canvas
+        setCanvases={setCanvases}  // Pass setCanvases to Canvas
       />
+      
     </>
+    
   );
 };
 
