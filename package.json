@@ -20,6 +20,7 @@
     "font-awesome": "^4.7.0",
     "interactjs": "^1.10.27",
     "jquery": "^3.7.1",
+    "lucide-react": "^0.511.0",
     "primereact": "^10.9.3",
     "react": "^19.0.0",
     "react-apexcharts": "^1.7.0",
@@ -27,6 +28,7 @@
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "react-rnd": "^10.5.2",
+    "react-router-dom": "^7.6.1",
     "use-debounce": "^10.0.4",
     "uuid": "^11.1.0"
   },
