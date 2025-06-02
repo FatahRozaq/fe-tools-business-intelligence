@@ -12,17 +12,12 @@ const Canvas = ({
   visualizationType,
   visualizationConfig,
   onVisualizationSelect,
-  selectedVisualization,
-  currentCanvasIndex,
-  setCurrentCanvasIndex,
-  canvases,
-  setCanvases
+  selectedVisualization
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // Loading state untuk data awal
   const [pendingSaveTimeouts, setPendingSaveTimeouts] = useState({});
-  const [totalCanvases, setTotalCanvases] = useState(0);
 
   const zoomSpeed = 0.005;
   const containerRef = useRef(null);
@@ -105,17 +100,8 @@ const Canvas = ({
     };
   }, []); // mapApiVisualizationToState tidak punya dependensi luar
 
-useEffect(() => {
-    // Pastikan currentCanvasIndex sudah diambil dari localStorage saat pertama kali
-    const savedIndex = localStorage.getItem("currentCanvasIndex");
-    if (savedIndex !== null) {
-      setCurrentCanvasIndex(parseInt(savedIndex));
-    }
-
-  }, [setCurrentCanvasIndex]);
-
-
-useEffect(() => {
+  // useEffect untuk memuat visualisasi saat komponen mount
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
         console.warn("Loading visualizations timed out.");
@@ -125,12 +111,9 @@ useEffect(() => {
     }, 10000); // Timeout 10 detik
 
     setIsLoading(true);
-    const currentCanvasId = canvases[currentCanvasIndex]?.id;
-    
-    // Mengambil visualisasi berdasarkan ID canvas yang statis (ID 1)
-    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/${currentCanvasId}/visualizations`)
+    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/get-visualizations`)
       .then(response => {
-        console.log("API Response (get-visualizations for canva):", response.data);
+        console.log("API Response (get-visualizations):", response.data);
         if (response.data.status === 'success' && Array.isArray(response.data.data)) {
           const apiVisualizations = response.data.data;
           const loadedVisualizations = apiVisualizations
@@ -153,7 +136,7 @@ useEffect(() => {
 
     // Cleanup timeout saat komponen unmount
     return () => clearTimeout(timeoutId);
-  }, [currentCanvasIndex,canvases, mapApiVisualizationToState]); // Dependency hanya pada mapApiVisualizationToState
+  }, [mapApiVisualizationToState]); // Dependency hanya pada mapApiVisualizationToState
 
   // Fungsi untuk menyimpan visualisasi ke API (dengan workaround untuk config)
   const saveVisualizationToAPI = useCallback((visualization) => {
@@ -171,32 +154,23 @@ useEffect(() => {
   // Stringify objek config
   const configString = JSON.stringify(configObject);
 
-  const currentCanvasId = canvases[currentCanvasIndex]?.id;
-  
-  if (!currentCanvasId) {
-    console.error("Canvas ID is not available.");
-    return Promise.reject("Canvas ID is not available.");
-  }
-
   // Siapkan payload untuk API
   const payload = {
-  // id_canvas: canvases[currentCanvasIndex]?.id,
-  id_canvas: currentCanvasId,
-  id_datasource: visualization.id_datasource, // Wajib ada
-  id_visualization: visualization.id, // Kirim ID jika ada, untuk update
-  name: visualization.title || `Visualisasi ${visualization.type}`, // Default name jika tidak ada
-  visualization_type: visualization.type, // Wajib ada
-  query: visualization.query, // Wajib ada
-  // --- WORKAROUND untuk validasi backend yang mengharuskan config array ---
-  // Kirim string JSON dari config sebagai elemen tunggal dalam sebuah array.
-  config: [configString],
-  // --- AKHIR WORKAROUND ---
-  width: Math.round(visualization.width) || 600, // Default width jika tidak ada
-  height: Math.round(visualization.height) || 400, // Default height jika tidak ada
-  position_x: Math.round(visualization.x) || 0, // Default x jika tidak ada
-  position_y: Math.round(visualization.y) || 0, // Default y jika tidak ada
-};
-
+    id_canvas: visualization.id_canvas || 1, // Default id_canvas jika tidak ada
+    id_datasource: visualization.id_datasource, // Wajib ada
+    id_visualization: visualization.id, // Kirim ID jika ada, untuk update
+    name: visualization.title || `Visualisasi ${visualization.type}`, // Default name jika tidak ada
+    visualization_type: visualization.type, // Wajib ada
+    query: visualization.query, // Wajib ada
+    // --- WORKAROUND untuk validasi backend yang mengharuskan config array ---
+    // Kirim string JSON dari config sebagai elemen tunggal dalam sebuah array.
+    config: [configString],
+    // --- AKHIR WORKAROUND ---
+    width: Math.round(visualization.width) || 600, // Default width jika tidak ada
+    height: Math.round(visualization.height) || 400, // Default height jika tidak ada
+    position_x: Math.round(visualization.x) || 0, // Default x jika tidak ada
+    position_y: Math.round(visualization.y) || 0, // Default y jika tidak ada
+  };
 
   console.log("Saving visualization to API (Payload):", payload);
 
@@ -336,17 +310,10 @@ useEffect(() => {
       const newType = visualizationType;
       const newQuery = query;
       const datasourceId = data.id_datasource || 1; // Pastikan ada id_datasource
-      const currentCanvasId = canvases[currentCanvasIndex]?.id;
-
-      if (!currentCanvasId) {
-        console.error("Canvas ID is not available.");
-        return; // Return early if canvas ID is not available
-      }
-      
 
       const newVisualization = {
         id: tempId,
-        id_canvas: currentCanvasId, // Asumsi canvas ID 1
+        id_canvas: 1, // Asumsi canvas ID 1
         id_datasource: datasourceId, // Penting! Tambahkan id_datasource
         query: newQuery,
         type: newType,
@@ -357,7 +324,6 @@ useEffect(() => {
         width: 600, // Lebar default
         height: 400, // Tinggi default
         requestPayload: { // Buat requestPayload yang stabil
-           id_canvas: currentCanvasId,
            id_datasource: datasourceId,
            query: newQuery,
            visualizationType: newType,
@@ -731,87 +697,93 @@ useEffect(() => {
 
       // Render div container untuk setiap visualisasi
       return (
-        // ... (kode lain di komponen induk) ...
+        <div
+          key={viz.id} // Key unik untuk React
+          id={viz.id} // ID untuk interact.js dan styling
+          className={`visualization-container ${isSelected ? 'selected' : ''}`} // Class untuk styling
+          style={{
+            // Style dikontrol oleh interact.js dan state React
+            width: `${viz.width}px`,
+            height: `${viz.height}px`,
+            transform: `translate(${viz.x}px, ${viz.y}px)`,
+            // Style visual lainnya
+            background: "#fff",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            borderRadius: "8px",
+            overflow: "hidden", // Konten tidak boleh meluber keluar box
+            position: "absolute", // Krusial untuk positioning via transform
+            cursor: "grab", // Cursor default
+            touchAction: "none", // Rekomendasi interact.js
+            borderColor: isSelected ? "hsl(206, 90%, 55%)" : "transparent", // Border saat selected
+            borderWidth: "2px",
+            borderStyle: "solid",
+            zIndex: isSelected ? 10 : 1 // Visualisasi terpilih di atas
+          }}
+          // Handler klik pada container visualisasi
+          onClick={(e) => {
+            // Hindari selection jika yang diklik adalah tombol remove atau ikon di dalamnya
+            const target = e.target;
+            if (target.classList.contains('remove-button') || target.closest('.remove-button')) {
+                return; // Jangan lakukan apa-apa jika tombol remove diklik
+            }
+            handleVisualizationClick(viz); // Pilih visualisasi jika area lain diklik
+          }}
+          // Atribut data untuk dibaca interact.js
+          data-x={viz.x}
+          data-y={viz.y}
+        >
+          {/* Header Visualisasi */}
+          <div className="visualization-header" style={{ userSelect: 'none', cursor: 'inherit' }}>
+            <h3>{viz.title || `Visualisasi ${viz.type}`}</h3>
+            {/* Tombol Hapus */}
+            <button
+              className="remove-button"
+              onClick={(e) => {
+                e.stopPropagation(); // Hentikan event bubbling agar onClick container tidak terpanggil
+                handleRemoveVisualization(viz.id); // Panggil fungsi hapus
+              }}
+              aria-label="Remove visualization" // Aksesibilitas
+              title="Remove visualization" // Tooltip
+            >
+              × {/* Simbol X */}
+            </button>
+          </div>
 
-<div
-  key={viz.id} // Key unik untuk React
-  id={viz.id} // ID untuk interact.js dan styling
-  className={`visualization-container ${isSelected ? 'selected' : ''}`} // Class untuk styling
-  style={{
-    width: `${viz.width}px`,
-    height: `${viz.height}px`,
-    transform: `translate(${viz.x}px, ${viz.y}px)`,
-    background: "#fff",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    borderRadius: "8px",
-    overflow: "hidden", // Konten tidak boleh meluber keluar box
-    position: "absolute", // Krusial untuk positioning via transform
-    cursor: "grab", // Cursor default
-    touchAction: "none", // Rekomendasi interact.js
-    borderColor: isSelected ? "hsl(206, 90%, 55%)" : "transparent", // Border saat selected
-    borderWidth: "2px",
-    borderStyle: "solid",
-    zIndex: isSelected ? 10 : 1 // Visualisasi terpilih di atas
-  }}
-  onClick={(e) => {
-    const target = e.target;
-    if (target.classList.contains('remove-button') || target.closest('.remove-button')) {
-        return; 
-    }
-    handleVisualizationClick(viz); 
-  }}
-  data-x={viz.x}
-  data-y={viz.y}
->
-  {/* Header Visualisasi */}
-  <div className="visualization-header" style={{ userSelect: 'none', cursor: 'inherit' }}>
-    <h3>{viz.title || `Visualisasi ${viz.type}`}</h3>
-    <button
-      className="remove-button"
-      onClick={(e) => {
-        e.stopPropagation(); 
-        handleRemoveVisualization(viz.id); 
-      }}
-      aria-label="Remove visualization" 
-      title="Remove visualization" 
-    >
-      ×
-    </button>
-  </div>
-
-  {/* Konten Visualisasi */}
-  <div
-    className="visualization-content"
-    style={{
-      // padding: "10px", // <-- HAPUS PADDING INI
-      height: `calc(100% - 40px)`, // Tinggi konten = 100% - tinggi header (sesuaikan 40px jika header berubah)
-      boxSizing: "border-box", 
-      overflow: "hidden" // Biarkan overflow di sini jika konten Visualisasi (misal tabel panjang) memang perlu scroll
-                       // Jika chart harus fit sempurna dan tidak scroll, mungkin perlu strategi lain atau overflow: hidden di sini
-                       // dan pastikan chart/table/card di dalam Visualisasi menghandle overflow-nya sendiri jika perlu.
-                       // Untuk kasus chart autofit, 'hidden' atau membiarkan chart menangani ukurannya lebih baik.
-                       // Kita akan buat Visualisasi mengisi 100% height dari ini, jadi overflow: 'hidden' lebih cocok.
-    }}
-  >
-     {/* --- Render Komponen Anak (DataTableComponent atau Visualisasi) --- */}
-     {viz.type === 'table' ? (
-        <DataTableComponent
-          data={data} 
-          query={viz.query}
-        />
-     ) : viz.type ? (
-        <Visualisasi
-          requestPayload={viz.requestPayload} 
-          visualizationType={viz.type}        
-          visualizationConfig={viz.config}    
-        />
-     ) : (
-        <p style={{ color: 'red', padding: '10px' }}>Tipe visualisasi tidak valid atau tidak ditemukan.</p>
-     )}
-  </div>
-</div>
-
-// ... (sisa kode komponen induk) ...
+          {/* Konten Visualisasi */}
+          <div
+            className="visualization-content"
+            style={{
+              padding: "10px", // Padding internal
+              height: `calc(100% - 40px)`, // Tinggi konten = 100% - tinggi header (sesuaikan 40px jika header berubah)
+              boxSizing: "border-box", // Padding dan border termasuk dalam height
+              overflow: "auto" // Scroll jika konten lebih besar dari area
+            }}
+          >
+             {/* --- Render Komponen Anak (DataTableComponent atau Visualisasi) --- */}
+             {/* Pastikan komponen anak sudah di-wrap React.memo */}
+             {viz.type === 'table' ? (
+                // Render DataTableComponent jika tipenya 'table'
+                // Asumsi DataTableComponent sudah di-memoize
+                <DataTableComponent
+                  data={data} // Mungkin perlu data spesifik? Cek kebutuhan DataTableComponent
+                  query={viz.query}
+                  // Tambahkan props lain jika DataTableComponent memerlukannya
+                />
+             ) : viz.type ? (
+                // Render Visualisasi jika tipe ada dan bukan 'table'
+                // Asumsi Visualisasi sudah di-memoize
+                <Visualisasi
+                  requestPayload={viz.requestPayload} // Prop requestPayload yang stabil
+                  visualizationType={viz.type}        // Prop tipe visualisasi
+                  visualizationConfig={viz.config}    // Prop config (akan berubah saat dikonfigurasi)
+                />
+             ) : (
+                // Fallback jika tipe tidak ada atau tidak dikenali
+                <p style={{ color: 'red', padding: '10px' }}>Tipe visualisasi tidak valid atau tidak ditemukan.</p>
+             )}
+          </div>
+          {/* Tidak perlu resize handle manual karena interact.js handle dari edges */}
+        </div>
       );
     });
   };
@@ -840,6 +812,7 @@ useEffect(() => {
           minWidth: "1200px",
           minHeight: "800px", // Tinggi minimal agar ada area scroll
           overflow: "visible", // Biarkan visualisasi terlihat di luar batas jika perlu (atau auto/scroll)
+          background: "#f0f2f5", // Warna latar canvas
           border: "1px solid #d9d9d9" // Border opsional
         }}
         onClick={handleCanvasClick} // Handler klik untuk unselect
