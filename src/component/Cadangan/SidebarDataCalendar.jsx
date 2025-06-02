@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import config from "../config";
 import FooterBar from "./FooterBar";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { GrDatabase } from "react-icons/gr";
-import { FaPlus, FaFilter, FaTableColumns, FaCalendarDays } from "react-icons/fa6"; // Added FaCalendarDays
+import { FaPlus, FaFilter, FaTableColumns } from "react-icons/fa6";
 import { MdPublish } from "react-icons/md";
+import { Calendar } from 'primereact/calendar';
 import AddButton from "./Button/AddButton";
 import SubmitButton from "./Button/SubmitButton";
 import { Toast } from "primereact/toast";
-import DateRangeSelector from "./DateRangeSelector"; // Import the new component
 
 const SidebarData = ({
   fetchData,
@@ -18,10 +18,12 @@ const SidebarData = ({
   setCanvasData,
   setCanvasQuery,
   selectedTable,
-  onVisualizationTypeChange,
+  onVisualizationTypeChange
 }) => {
-  const toast = useRef(null);
+  // Reference for toast notifications
+  const toast = React.useRef(null);
 
+  // Form state
   const [dimensiInputs, setDimensiInputs] = useState([""]);
   const [metrikInputs, setMetrikInputs] = useState([]);
   const [metrikAggregation, setMetrikAggregation] = useState([]);
@@ -30,32 +32,41 @@ const SidebarData = ({
   ]);
   const [showFooter, setShowFooter] = useState(false);
 
-  const [joinDimensiIndexes, setJoinDimensiIndexes] = useState([]);
-  const [joinDimensiData, setJoinDimensiData] = useState([]);
-  const [joinMetrikData, setJoinMetrikData] = useState([]);
+  // Date range state
+  const [showPopupDate, setShowpopupDate] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [dateColumnsData, setDateColumnsData] = useState(null);
 
+  // Join state
+  const [joinDimensiIndexes, setJoinDimensiIndexes] = useState([]);
+  const [joinDimensiData, setJoinDimensiData] = useState([]); // For dimension joins
+  const [joinMetrikData, setJoinMetrikData] = useState([]); // For metric joins
+
+  // Dialog state
   const [showPopup, setShowPopup] = useState(false);
   const [showPopupMetrik, setShowPopupMetrik] = useState(false);
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
 
+  // Selected options
   const [tables, setTables] = useState([]);
   const [selectedJoinTable, setSelectedJoinTable] = useState("");
   const [selectedJoinTableMetrik, setSelectedJoinTableMetrik] = useState("");
   const [selectedJoinType, setSelectedJoinType] = useState("INNER");
   const [selectedJoinTypeMetrik, setSelectedJoinTypeMetrik] = useState("INNER");
 
+  // Flag for visualization creation
   const [readyToCreateVisualization, setReadyToCreateVisualization] =
     useState(false);
 
+  // New state for drag and drop
   const [dragOver, setDragOver] = useState({
     dimensi: Array(dimensiInputs.length).fill(false),
     metrik: Array(metrikInputs.length).fill(false),
   });
 
-  // New state for DateRangeSelector
-  const [showDateRangePopup, setShowDateRangePopup] = useState(false);
-  const [dateFilter, setDateFilter] = useState(null);
-
+  // Fetch available tables on component mount
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
@@ -73,6 +84,7 @@ const SidebarData = ({
       });
   }, []);
 
+  // Update drag over state when dimensiInputs or metrikInputs change
   useEffect(() => {
     setDragOver({
       dimensi: Array(dimensiInputs.length).fill(false),
@@ -80,18 +92,23 @@ const SidebarData = ({
     });
   }, [dimensiInputs.length, metrikInputs.length]);
 
+  // Format column name from JSON or object
   const formatColumnName = (data, type) => {
     try {
+      // Check if data is a JSON string, parse if yes
       if (typeof data === "string" && data.trim().startsWith("{")) {
         const parsedData = JSON.parse(data);
         return parsedData.columnName || "";
       }
+
+      // If data is already an object, get columnName directly
       return data && data.columnName ? data.columnName : "";
     } catch (error) {
-      return "";
+      return ""; // Return empty string if there's an error
     }
   };
 
+  // Toast notification helper
   const showToast = (severity, summary, detail) => {
     toast.current?.show({
       severity: severity,
@@ -101,9 +118,10 @@ const SidebarData = ({
     });
   };
 
+  // Handle dimension input addition
   const handleAddDimensi = () => {
     const lastDimensi = dimensiInputs[dimensiInputs.length - 1];
-    if (lastDimensi && typeof lastDimensi === 'string' && lastDimensi.trim() === "") {
+    if (lastDimensi.trim() === "") {
       showToast(
         "warn",
         "Warning",
@@ -114,37 +132,44 @@ const SidebarData = ({
     }
   };
 
+  // Handle metric input addition
   const handleAddMetrik = () => {
     setShowPopupMetrik(true);
     setWaitingForConfirmation(true);
   };
 
+  // Handle dimension input change
   const handleDimensiChange = (index, event) => {
     const newDimensiInputs = [...dimensiInputs];
     newDimensiInputs[index] = event.target.value;
     setDimensiInputs(newDimensiInputs);
   };
 
+  // Handle metric input change
   const handleMetrikChange = (index, event) => {
     const newMetrikInputs = [...metrikInputs];
     newMetrikInputs[index] = event.target.value;
     setMetrikInputs(newMetrikInputs);
   };
 
+  // Handle aggregation type change for metrics
   const handleAggregationChange = (index, event) => {
     const newAggregation = [...metrikAggregation];
     newAggregation[index] = event.target.value;
     setMetrikAggregation(newAggregation);
 
+    // Combine metric value with selected aggregation
     const newMetrikInputs = [...metrikInputs];
     if (
       newMetrikInputs[index] &&
       typeof newMetrikInputs[index] === "string" &&
       newMetrikInputs[index].includes("|")
     ) {
+      // Update existing aggregation
       newMetrikInputs[index] =
         newMetrikInputs[index].split("|")[0] + "|" + event.target.value;
     } else {
+      // Add new aggregation
       newMetrikInputs[
         index
       ] = `${newMetrikInputs[index]}|${event.target.value}`;
@@ -152,21 +177,27 @@ const SidebarData = ({
     setMetrikInputs(newMetrikInputs);
   };
 
+  // Toggle filter footer
   const handleToggleFooter = () => {
     setShowFooter(!showFooter);
   };
 
+  // Handle applied filters
   const handleApplyFilters = (newFilters, appliedFilters) => {
     console.log("Filters applied:", appliedFilters);
     setFilters(newFilters);
     showToast("success", "Success", "Filters applied successfully");
   };
 
+  // Handle dimension join selection
   const handleJoinSelection = (type) => {
+    // Add join type and table when user confirms
     const newJoinDimensiIndexes = [...joinDimensiIndexes];
     const lastDimensiIndex = dimensiInputs.length - 1;
+
     const newJoinData = [...joinDimensiData];
 
+    // Update join data with selected table and join type
     newJoinData[lastDimensiIndex] = {
       tabel: selectedJoinTable,
       join_type: type,
@@ -186,13 +217,18 @@ const SidebarData = ({
       newJoinData[lastDimensiIndex] = { tabel: "", join_type: "tanpa join" };
     }
 
+    // Set join data and update join indexes
     setJoinDimensiData(newJoinData);
     setJoinDimensiIndexes(newJoinDimensiIndexes);
+
+    // Add a new empty dimension input
     setDimensiInputs([...dimensiInputs, ""]);
+
     setShowPopup(false);
     showToast("success", "Success", "Dimension join added");
   };
 
+  // Handle metric join selection
   const handleJoinSelectionMetrik = (type) => {
     if (waitingForConfirmation) {
       const newJoinData = [...joinMetrikData];
@@ -212,13 +248,194 @@ const SidebarData = ({
 
       setJoinMetrikData(newJoinData);
       setMetrikInputs([...metrikInputs, ""]);
-      setMetrikAggregation([...metrikAggregation, "COUNT"]);
+      setMetrikAggregation([...metrikAggregation, "COUNT"]); // Default aggregation
+
       setShowPopupMetrik(false);
       setWaitingForConfirmation(false);
       showToast("success", "Success", "Metric join added");
     }
   };
 
+  // Extract date columns from table
+  // DataParser utility (dari kode sebelumnya)
+const DataParser = {
+  parseDimensi: (dimensi) => {
+    try {
+      return typeof dimensi === "string" && dimensi.trim().startsWith("{")
+        ? JSON.parse(dimensi)
+        : dimensi;
+    } catch (e) {
+      console.error("Failed to parse dimension:", e);
+      return null;
+    }
+  },
+
+  parseMetrik: (metrik) => {
+    try {
+      if (typeof metrik === "string" && metrik.includes("|")) {
+        const [metrikValue] = metrik.split("|");
+        return metrikValue.trim().startsWith("{")
+          ? JSON.parse(metrikValue)
+          : metrikValue;
+      } else {
+        return typeof metrik === "string" && metrik.trim().startsWith("{")
+          ? JSON.parse(metrik)
+          : metrik;
+      }
+    } catch (e) {
+      console.error("Failed to parse metric:", e);
+      return null;
+    }
+  },
+
+  getTableAndColumn: (dimensiInputs, metrikInputs, selectedTable) => {
+    let table = "";
+    let column = "";
+
+    if (dimensiInputs[0] && dimensiInputs[0].trim() !== "") {
+      const parsed = DataParser.parseDimensi(dimensiInputs[0]);
+      if (parsed) {
+        table = parsed.tableName || "";
+        column = parsed.columnName || "";
+      }
+    }
+
+    if ((!table || !column) && metrikInputs[0]) {
+      const parsed = DataParser.parseMetrik(metrikInputs[0]);
+      if (parsed) {
+        table = parsed.tableName || "";
+        column = parsed.columnName || "";
+      }
+    }
+
+    if (!table && selectedTable) {
+      table = selectedTable;
+    }
+
+    return { table, column };
+  }
+};
+
+// Fungsi extract date columns
+const extractDateColumns = async () => {
+  try {
+    setLoadingDateColumns(true);
+    
+    const { table, column } = DataParser.getTableAndColumn(
+      dimensiInputs, 
+      metrikInputs, 
+      selectedTable
+    );
+
+    if (!table || !column) {
+      showToast(
+        "error",
+        "Error",
+        "Please select at least one dimension or metric first"
+      );
+      return null;
+    }
+
+    const payload = { tabel: table, kolom: column };
+    
+    const response = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/check-date`,payload);
+
+    if (response.data.success) {
+      const result = {
+        table,
+        excludedColumn: column,
+        hasDateColumns: response.data.has_date_column,
+        dateColumns: response.data.date_columns || []
+      };
+
+      setDateColumnsData(result);
+      
+      if (result.dateColumns.length > 0) {
+        showToast(
+          "success",
+          "Success",
+          `Found ${result.dateColumns.length} date column(s)`
+        );
+      } else {
+        showToast(
+          "info",
+          "Info",
+          `No date columns available in table ${table}`
+        );
+      }
+      
+      return result;
+    } else {
+      showToast("error", "Error", response.data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error checking date columns:", error);
+    showToast("error", "Error", "Failed to check date columns");
+    return null;
+  } finally {
+    setLoadingDateColumns(false);
+  }
+};
+
+// 4. Modified handleDateRange function
+const handleDateRange = async () => {
+  // Extract date columns first
+  const result = await extractDateColumns();
+  
+  if (result && result.dateColumns.length > 0) {
+    // Open dialog if date columns found
+    setShowpopupDate(true);
+  } else if (result && result.dateColumns.length === 0) {
+    // No date columns available
+    showToast(
+      "warning",
+      "Warning", 
+      "No date columns available for filtering"
+    );
+  }
+  // Error cases already handled in extractDateColumns
+};
+
+  const applyDateRange = () => {
+    if (!selectedDate || !startDate || !endDate) {
+      // Tambahkan validasi jika diperlukan
+      return;
+    }
+    
+    // Format tanggal untuk filter
+    const formattedStartDate = startDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    const formattedEndDate = endDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    
+    // Buat filter baru dengan operator between
+    const newFilter = {
+      mode: 'include',
+      column: selectedDate,
+      operator: 'between',
+      value1: formattedStartDate,
+      value2: formattedEndDate,
+      logic: filters.length > 0 ? filters[0].logic : 'and'
+    };
+    addDateRangeFilter(newFilter);
+    sendDataToAPI();
+    
+    setShowpopupDate(false);
+  };
+
+  // Fungsi untuk menambahkan filter rentang tanggal
+  const addDateRangeFilter = (newFilter) => {
+    // Jika ingin menggunakan fungsi addFilter yang sudah ada
+    addFilter();
+    
+    // Update filter terakhir dengan nilai rentang tanggal
+    const lastIndex = filters.length;
+    handleFilterChange(lastIndex, 'column', newFilter.column);
+    handleFilterChange(lastIndex, 'operator', newFilter.operator);
+    handleFilterChange(lastIndex, 'value1', newFilter.value1);
+    handleFilterChange(lastIndex, 'value2', newFilter.value2);
+  };
+
+  // Reset form to create a new visualization
   const resetForm = () => {
     setDimensiInputs([""]);
     setMetrikInputs([]);
@@ -230,12 +447,12 @@ const SidebarData = ({
     setJoinDimensiData([]);
     setJoinMetrikData([]);
     setReadyToCreateVisualization(false);
-    setDateFilter(null); // Reset date filter
-    setShowDateRangePopup(false); // Close date range popup
     showToast("info", "Info", "Form reset for new visualization");
   };
 
+  // Send data to API to create visualization
   const sendDataToAPI = () => {
+    // Validation
     if (
       dimensiInputs.length === 1 &&
       dimensiInputs[0].trim() === "" &&
@@ -249,7 +466,9 @@ const SidebarData = ({
       return;
     }
 
+    // Get table from first dimension or metric
     let table = "";
+
     if (dimensiInputs[0] && dimensiInputs[0].trim() !== "") {
       try {
         const parsedDimensi =
@@ -274,18 +493,22 @@ const SidebarData = ({
       }
     }
 
+    // If still no table, use selected table
     if (!table && selectedTable) {
       table = selectedTable;
     }
 
+    // Format dimensions
     const dimensi = dimensiInputs
       .map((dimensi) => {
         try {
-          if (!dimensi || (typeof dimensi === 'string' && dimensi.trim() === "")) return "";
+          if (!dimensi || dimensi.trim() === "") return "";
+
           const parsedDimensi =
             typeof dimensi === "string" && dimensi.trim().startsWith("{")
               ? JSON.parse(dimensi)
               : dimensi;
+
           return parsedDimensi.tableName && parsedDimensi.columnName
             ? `${parsedDimensi.tableName}.${parsedDimensi.columnName}`
             : "";
@@ -296,24 +519,30 @@ const SidebarData = ({
       })
       .filter((input) => input && input.trim() !== "");
 
+    // Format metrics
     const metriks = metrikInputs
       .map((metrik, index) => {
         try {
           if (!metrik) return "";
+
           let parsedMetrik, aggregation;
+
           if (typeof metrik === "string" && metrik.includes("|")) {
+            // If metrik already includes aggregation
             const [metrikValue, agg] = metrik.split("|");
             parsedMetrik = metrikValue.trim().startsWith("{")
               ? JSON.parse(metrikValue)
               : metrikValue;
             aggregation = agg;
           } else {
+            // If metrik doesn't include aggregation
             parsedMetrik =
               typeof metrik === "string" && metrik.trim().startsWith("{")
                 ? JSON.parse(metrik)
                 : metrik;
             aggregation = metrikAggregation[index] || "COUNT";
           }
+
           return parsedMetrik.tableName && parsedMetrik.columnName
             ? `${parsedMetrik.tableName}.${parsedMetrik.columnName}|${aggregation}`
             : "";
@@ -324,6 +553,7 @@ const SidebarData = ({
       })
       .filter((input) => input && input.trim() !== "");
 
+    // Combine joins
     const tabelJoin = [
       ...joinDimensiData.filter(
         (dimensiJoin) =>
@@ -339,8 +569,9 @@ const SidebarData = ({
       ),
     ];
 
-    const userDefinedFilters = filters
-      .filter((filter) => filter.column && filter.operator && filter.value !== "") // Ensure value is also present
+    // Format filters
+    const parsedFilters = filters
+      .filter((filter) => filter.column && filter.operator)
       .map((filter) => {
         const column = filter.column.includes(".")
           ? filter.column
@@ -353,31 +584,19 @@ const SidebarData = ({
           logic: filter.logic?.toLowerCase() || "and",
         };
       });
-    
-    let finalFilters = [...userDefinedFilters];
 
-    if (dateFilter && dateFilter.column && dateFilter.operator && dateFilter.value) {
-        const formattedDateFilter = {
-            column: dateFilter.column, // Already in table.column format
-            operator: dateFilter.operator,
-            value: dateFilter.value,
-            mode: dateFilter.mode?.toLowerCase() || "include",
-            logic: dateFilter.logic?.toLowerCase() || "and",
-        };
-        finalFilters.unshift(formattedDateFilter); // Add date filter to the beginning
-    }
-
-
+    // Request payload
     const payload = {
       tabel: table,
       dimensi,
       metriks,
       tabel_join: tabelJoin,
-      filters: finalFilters,
+      filters: parsedFilters,
     };
 
     console.log("Sending data to API:", payload);
 
+    // Send to API
     axios
       .post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, payload)
       .then((response) => {
@@ -407,8 +626,11 @@ const SidebarData = ({
       });
   };
 
+  // New drag and drop handler functions
   const handleDragOver = (e, type, index) => {
     e.preventDefault();
+
+    // Update dragOver state based on type and index
     const newDragOver = { ...dragOver };
     if (type === "dimensi") {
       newDragOver.dimensi = dragOver.dimensi.map((item, i) => i === index);
@@ -420,6 +642,8 @@ const SidebarData = ({
 
   const handleDragLeave = (e) => {
     e.preventDefault();
+
+    // Reset dragOver state
     setDragOver({
       dimensi: Array(dimensiInputs.length).fill(false),
       metrik: Array(metrikInputs.length).fill(false),
@@ -428,14 +652,19 @@ const SidebarData = ({
 
   const handleDrop = (e, type, index) => {
     e.preventDefault();
+
     try {
+      // Get data from drag operation - FIXED to match the MIME type used in Sidebar.jsx
       const data = e.dataTransfer.getData("text/plain");
       if (!data) {
         console.error("No data received from drag operation");
         showToast("error", "Error", "Invalid data format");
         return;
       }
+
       const columnData = JSON.parse(data);
+
+      // Update dimensions or metrics based on drop target
       if (type === "dimensi") {
         const newDimensiInputs = [...dimensiInputs];
         newDimensiInputs[index] = JSON.stringify(columnData);
@@ -445,31 +674,18 @@ const SidebarData = ({
         newMetrikInputs[index] = JSON.stringify(columnData);
         setMetrikInputs(newMetrikInputs);
       }
+
       showToast("success", "Success", `Column added to ${type}`);
     } catch (error) {
       console.error("Error processing dropped data:", error);
       showToast("error", "Error", "Failed to process dragged data");
     }
+
+    // Reset dragOver state
     setDragOver({
       dimensi: Array(dimensiInputs.length).fill(false),
       metrik: Array(metrikInputs.length).fill(false),
     });
-  };
-
-  // Handlers for DateRangeSelector
-  const handleToggleDateRangePopup = () => {
-    setShowDateRangePopup(!showDateRangePopup);
-  };
-
-  const handleDateRangeChange = (newDateFilter) => {
-    setDateFilter(newDateFilter);
-    if (newDateFilter) {
-      showToast("success", "Success", "Date range filter applied.");
-    } else {
-      showToast("info", "Info", "Date range filter cleared.");
-      // If clearing, we might want to immediately refetch data or prompt user
-    }
-    setShowDateRangePopup(false); // Close the dialog after applying/clearing
   };
 
   return (
@@ -504,6 +720,7 @@ const SidebarData = ({
               <FaTableColumns className="me-2" />
               Dimensions
             </span>
+            {/* <small className="text-muted">Drag columns from datasource panel</small> */}
           </div>
 
           <div id="dimensi-container">
@@ -545,6 +762,7 @@ const SidebarData = ({
           />
         </div>
 
+        {/* Dialog PopUp Join Dimension */}
         <Dialog
           header="Select Join Type"
           visible={showPopup}
@@ -558,7 +776,6 @@ const SidebarData = ({
               <h6>Join With Table</h6>
               <select
                 className="form-select"
-                value={selectedJoinTable}
                 onChange={(e) => setSelectedJoinTable(e.target.value)}
               >
                 <option value="">Select a table</option>
@@ -573,9 +790,9 @@ const SidebarData = ({
               <h6>Join Type</h6>
               <select
                 className="form-select"
-                value={selectedJoinType}
                 onChange={(e) => setSelectedJoinType(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
@@ -592,7 +809,6 @@ const SidebarData = ({
               icon="pi pi-check"
               onClick={() => handleJoinSelection(selectedJoinType)}
               className="p-button-success me-2"
-              disabled={!selectedJoinTable && selectedJoinType !== 'tanpa join'}
             />
             <Button
               label="Cancel"
@@ -606,6 +822,7 @@ const SidebarData = ({
         <div className="form-group mt-4">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <span className="fw-bold">Metrics</span>
+            {/* <small className="text-muted">Add calculations for your data</small> */}
           </div>
 
           <div id="metrik-container">
@@ -660,6 +877,7 @@ const SidebarData = ({
           />
         </div>
 
+        {/* Dialog PopUp Join Metric */}
         <Dialog
           header="Select Metric Join"
           visible={showPopupMetrik}
@@ -673,7 +891,6 @@ const SidebarData = ({
               <h6>Join With Table</h6>
               <select
                 className="form-select"
-                value={selectedJoinTableMetrik}
                 onChange={(e) => setSelectedJoinTableMetrik(e.target.value)}
               >
                 <option value="">Select a table</option>
@@ -688,9 +905,9 @@ const SidebarData = ({
               <h6>Join Type</h6>
               <select
                 className="form-select"
-                value={selectedJoinTypeMetrik}
                 onChange={(e) => setSelectedJoinTypeMetrik(e.target.value)}
               >
+                <option value="">select join type</option>
                 <option value="INNER">INNER JOIN</option>
                 <option value="LEFT">LEFT JOIN</option>
                 <option value="RIGHT">RIGHT JOIN</option>
@@ -707,7 +924,6 @@ const SidebarData = ({
               icon="pi pi-check"
               onClick={() => handleJoinSelectionMetrik(selectedJoinTypeMetrik)}
               className="p-button-success me-2"
-              disabled={!selectedJoinTableMetrik && selectedJoinTypeMetrik !== 'tanpa join'}
             />
             <Button
               label="Cancel"
@@ -718,59 +934,115 @@ const SidebarData = ({
           </div>
         </Dialog>
 
+        <div className="form-group">
+          <AddButton
+            text="Rentang Tanggal"
+            onClick={handleDateRange}
+            className="mt-2"
+          />
+        </div>
+
+        {/* Dialog PopUp Join Date */}
+        <Dialog
+          header="Pilih Kolom Tanggal"
+          visible={showPopupDate}
+          style={{ width: "60vw" }}
+          onHide={() => {
+          setShowpopupDate(false);
+          setSelectedDate('');
+          setStartDate(null);
+          setEndDate(null);
+        }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "15px",
+            }}
+          >
+            <div style={{ width: "45%" }}>
+              <h6>Pilih Kolom Tanggal</h6>
+              <select
+                onChange={(e) => setSelectedDate(e.target.value)}
+                value={selectedDate}
+                style={{ width: "100%",padding: "8px" }}
+              >
+                <option value="">Pilih Kolom</option>
+                {dateColumnsData?.dateColumns.map((column, idx) => (
+                  <option key={idx} value={column}>
+                    {column}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ width: "45%" }}>
+              <h6>Tanggal Awal</h6>
+              <Calendar
+                value={startDate}
+                onChange={(e) => setStartDate(e.value)}
+                dateFormat="dd/mm/yy"
+                showIcon
+                style={{ width: "100%" }}
+                />
+            </div>
+            <div style={{ width: "45%" }}>
+              <h6>Tanggal Akhir</h6>
+              <Calendar
+                value={endDate}
+                onChange={(e) => setEndDate(e.value)}
+                dateFormat="dd/mm/yy"
+                showIcon
+                style={{ width: "100%" }}
+                />
+            </div>
+
+          </div>
+          <div style={{ marginTop: "20px", textAlign: "right" }}>
+            <Button
+              label="Terapkan"
+              icon="pi pi-check"
+              onClick={applyDateRange}
+              style={{ marginRight: "10px"}}
+              disabled={!selectedDate || !startDate || !endDate}
+            />
+            <Button
+              label="Batal"
+              icon="pi pi-check"
+              onClick={() => setShowpopupDate(false)}
+            />
+          </div>
+        </Dialog>
+
         <div className="form-group mt-4">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <span className="fw-bold">
+              <FaFilter className="me-2" />
               Filters
             </span>
           </div>
-          <AddButton
-            text="Add Date Range"
-            onClick={handleToggleDateRangePopup}
-            className="mt-2 me-2" // Added me-2 for spacing if needed
-            icon={<FaCalendarDays size={12} />}
-          />
+
           <AddButton
             text="Add Filter"
             onClick={handleToggleFooter}
             className="mt-2"
             icon={<FaFilter size={12} />}
           />
-           {dateFilter && (
-            <div className="mt-2 p-2 border rounded bg-light">
-              <small className="d-block text-muted">Active Date Range:</small>
-              <span>{`${dateFilter.column} BETWEEN ${dateFilter.value[0]} AND ${dateFilter.value[1]}`}</span>
-            </div>
-          )}
         </div>
-        
-        {/* Dialog for DateRangeSelector */}
-        <Dialog
-          header="Select Primary Date Range"
-          visible={showDateRangePopup}
-          style={{ width: "70vw", maxWidth: "800px" }} // Adjusted width
-          onHide={() => setShowDateRangePopup(false)}
-          draggable={false}
-          resizable={false}
-          footer={null} // DateRangeSelector has its own apply/clear buttons
-        >
-          <DateRangeSelector
-            availableTables={tables}
-            onDateRangeChange={handleDateRangeChange}
-            initialDateFilter={dateFilter}
-          />
-        </Dialog>
-
 
         <div className="d-flex flex-column gap-2 mt-4">
           <Button
             label="Reset"
+            // icon="pi pi-refresh"
             className="p-button-secondary"
             onClick={resetForm}
           />
+
           <SubmitButton
             onClick={sendDataToAPI}
-            text="Fetch Data"
+            text="Create"
+            // icon={<MdPublish size={16} />}
           />
         </div>
       </div>
@@ -781,8 +1053,7 @@ const SidebarData = ({
           setFilters={setFilters}
           handleApplyFilters={handleApplyFilters}
           handleToggleFooter={handleToggleFooter}
-          availableTables={tables} // Pass tables to FooterBar if needed for column suggestions
-          currentTable={selectedTable || (dimensiInputs[0] && dimensiInputs[0].tableName) || ''} // Pass current primary table
+          dimensiInputs={dimensiInputs}
         />
       )}
 
@@ -796,16 +1067,19 @@ const SidebarData = ({
           margin-top: 4px;
           display: inline-block;
         }
+
         .sidebar-2 {
           max-height: 100vh;
           overflow-y: auto;
-          padding-bottom: 60px; /* Ensure space for footer or last elements */
+          padding-bottom: 60px;
         }
+
         .drop-target {
           border: 2px dashed transparent;
           border-radius: 4px;
           transition: all 0.2s;
         }
+
         .drag-over {
           border: 2px dashed #2196f3;
           background-color: rgba(33, 150, 243, 0.1);
