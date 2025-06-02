@@ -431,7 +431,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
     if (!savedVisualizationId) { // Initial Save because savedVisualizationId was reset
       console.log("Effect 2: Attempting initial save...");
       const savePayload = {
-          id_canvas: requestPayload.id_canvas || 1, // Provide defaults if necessary
+          id_canvas: requestPayload.id_canvas, 
           id_datasource: requestPayload.id_datasource || 1,
           name: requestPayload.name || visualizationConfig?.title || "Visualisasi Baru",
           visualization_type: activeVisualizationType,

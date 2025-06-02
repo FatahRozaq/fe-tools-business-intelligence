@@ -1041,7 +1041,7 @@ const handleDateRange = async () => {
 
           <SubmitButton
             onClick={sendDataToAPI}
-            text="Fetch Data"
+            text="Create"
             // icon={<MdPublish size={16} />}
           />
         </div>

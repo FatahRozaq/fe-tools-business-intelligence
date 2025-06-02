@@ -14,6 +14,7 @@ import Login from "./component/Login";
 import 'primereact/resources/themes/lara-light-indigo/theme.css';
 import 'primereact/resources/primereact.min.css';
 import VisualisasiChart from "./component/Visualiaze";
+import Canvas from "./component/Canvas";
 
 function App() {
   const [canvasData, setCanvasData] = useState([]);
@@ -52,12 +53,17 @@ function App() {
 
   return (
     <>
-      <Header />
+    
+      {/* <Header
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
+      /> */}
       <div className="main-container">
         <Sidebar 
           setCanvasData={setCanvasData} 
           setCanvasQuery={setCanvasQuery} 
         />
+        {/* <Canvas currentCanvasIndex={currentCanvasIndex}/> */}
         {/* <Canvas 
           data={canvasData} 
           query={canvasQuery} 

@@ -8,7 +8,7 @@
 }
 
 .canvas {
-  background-color: #f4f6f8; /* Warna canvas lebih terang */
+  background-color: #ffffff; /* Warna canvas lebih terang */
   /* Ukuran canvas besar untuk memberi ruang drag & drop */
   /* Padding tidak lagi diperlukan jika transformOrigin 0 0 */
   /* padding: 20px; */
@@ -49,9 +49,9 @@
 
 .empty-state {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(${1 / scale}); /* Skala terbalik agar teks tetap ukurannya */
+  top: 40%;
+  left: 28%;
+  /* transform: translate(-50%, -50%) scale(${1 / scale}); */
   text-align: center;
   padding: 30px;
   color: #777;
@@ -74,6 +74,20 @@
 .visualization-container.resizing {
   opacity: 0.8;
 }
+
+/* Menyembunyikan scrollbar tapi tetap bisa scroll */
+.visualization-content {
+  /* Firefox */
+  scrollbar-width: none;
+  
+  /* Internet Explorer 10+ */
+  -ms-overflow-style: none;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+/* .visualization-content::-webkit-scrollbar {
+  display: none;
+} */
 
 .visualization-header {
   background-color: #ffffff; /* Putih bersih untuk header */
