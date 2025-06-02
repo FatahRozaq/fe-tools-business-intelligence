@@ -389,7 +389,7 @@ const SidebarData = ({
           showToast(
             "success",
             "Success",
-            "Data fetched successfully. Select a visualization type to display."
+            "Data fetched successfully"
           );
           onVisualizationTypeChange("bar");
         } else {

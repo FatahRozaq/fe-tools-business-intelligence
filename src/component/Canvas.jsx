@@ -213,8 +213,8 @@ useEffect(() => {
       
       // Periksa apakah data dan id_visualization ada dalam response
       if (response.data.data && response.data.data.id_visualization) {
-        const dbId = response.data.data.id_visualization.toString();
-        
+        const dbId = response.data.data.id_visualization;
+        console.log(`Loh ${visualization.id || 'undefined'} to database ID ${dbId}`)
         // Selalu gunakan ID dari database (baik untuk visualisasi baru atau yang diupdate)
         if (dbId !== visualization.id) {
           console.log(`Updating visualization ID from ${visualization.id || 'undefined'} to database ID ${dbId}`);
@@ -732,6 +732,7 @@ useEffect(() => {
       // Render div container untuk setiap visualisasi
       return (
         // ... (kode lain di komponen induk) ...
+        
 
 <div
   key={viz.id} // Key unik untuk React
@@ -803,7 +804,8 @@ useEffect(() => {
         <Visualisasi
           requestPayload={viz.requestPayload} 
           visualizationType={viz.type}        
-          visualizationConfig={viz.config}    
+          visualizationConfig={viz.config}   
+          currentCanvasIndex={currentCanvasIndex} 
         />
      ) : (
         <p style={{ color: 'red', padding: '10px' }}>Tipe visualisasi tidak valid atau tidak ditemukan.</p>

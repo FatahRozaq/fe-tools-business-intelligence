@@ -291,6 +291,8 @@ useEffect(() => {
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
         visualizationConfig={visualizationConfig} 
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex}
       />
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}

@@ -122,6 +122,7 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
       .then((res) => {
         if (res.data.success) {
           const newCanvas = res.data.canvas;
+          // const idCanvas = res.data.canvas.id_canvas;
           setCanvases((prevCanvases) => [...prevCanvases, newCanvas]);
           setCurrentCanvasIndex(canvases.length);
           localStorage.setItem("currentCanvasIndex", canvases.length);

@@ -102,7 +102,7 @@ const DataTableComponent = ({ data, query }) => {
   );
 };
 
-const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig }) => {
+const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, currentCanvasIndex, setCurrentCanvasIndex,}) => {
   const [fetchedData, setFetchedData] = useState(null); // { raw: [], keys: [] }
   const [visualizationData, setVisualizationData] = useState(null); // { rawData, series, options, currentType, labelKey, valueKeys, colors }
   const [status, setStatus] = useState({ loading: true, error: null });
@@ -431,7 +431,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig })
     if (!savedVisualizationId) { // Initial Save because savedVisualizationId was reset
       console.log("Effect 2: Attempting initial save...");
       const savePayload = {
-          id_canvas: requestPayload.id_canvas, 
+          id_canvas: currentCanvasIndex + 1, 
           id_datasource: requestPayload.id_datasource || 1,
           name: requestPayload.name || visualizationConfig?.title || "Visualisasi Baru",
           visualization_type: activeVisualizationType,
