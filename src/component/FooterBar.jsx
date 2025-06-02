@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const FooterBar = ({ filters, setFilters, handleApplyFilters, handleToggleFooter }) => {
+const FooterBar = ({ filters, setFilters, handleApplyFilters, handleToggleFooter, dimensiInputs }) => {
   // State untuk menyimpan logika global antar filter
   const [globalLogic, setGlobalLogic] = useState("AND");
 
@@ -60,6 +60,25 @@ const FooterBar = ({ filters, setFilters, handleApplyFilters, handleToggleFooter
     }]);
   };
 
+    const getDimensiColumns = () => {
+    if (!dimensiInputs || dimensiInputs.length === 0) return [];
+
+    return dimensiInputs.map(dimensi => {
+      try {
+        if (typeof dimensi === 'string' && dimensi.startsWith('{')) {
+          const parsed = JSON.parse(dimensi);
+          return parsed.columnName || parsed.column || dimensi;
+        }
+
+        return dimensi;
+      } catch (e) {
+        return dimensi;
+      }
+    }).filter(Boolean);
+  }
+
+  const dimensiColumns = getDimensiColumns();
+
   return (
     <div className="footer-bar">
       <div className="footer-bar-header">
@@ -77,13 +96,25 @@ const FooterBar = ({ filters, setFilters, handleApplyFilters, handleToggleFooter
             <option value="INCLUDE">INCLUDE</option>
             <option value="EXCLUDE">EXCLUDE</option>
           </select>
-          <input
+          <select
+            className="filter-input"
+            value={filter.column}
+            onChange={(e) => handleFilterChange(index, "column", e.target.value)}
+          >
+            <option value="">Pilih Kolom</option>
+            {dimensiColumns.map((column, colIdx) => (
+              <option key={colIdx} value={column}>
+                {column}
+              </option>
+            ))}
+          </select>
+          {/* <input
             type="text"
             placeholder="Column"
             value={filter.column}
             onChange={(e) => handleFilterChange(index, "column", e.target.value)}
             className="filter-input"
-          />
+          /> */}
           <select 
             className="filter-input" 
             value={filter.operator} 
