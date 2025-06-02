@@ -16,7 +16,9 @@ const Canvas = ({
   currentCanvasIndex,
   setCurrentCanvasIndex,
   canvases,
-  setCanvases
+  setCanvases,
+  currentCanvasId,
+  setCurrentCanvasId
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
@@ -106,15 +108,33 @@ const Canvas = ({
   }, []); // mapApiVisualizationToState tidak punya dependensi luar
 
 useEffect(() => {
-    // Pastikan currentCanvasIndex sudah diambil dari localStorage saat pertama kali
-    const savedIndex = localStorage.getItem("currentCanvasIndex");
-    if (savedIndex !== null) {
-      setCurrentCanvasIndex(parseInt(savedIndex));
-    }
+  const savedIndex = localStorage.getItem("currentCanvasIndex");
+  const savedCanvasId = localStorage.getItem("currentCanvasId");
 
-  }, [setCurrentCanvasIndex]);
-
-
+  if (savedIndex !== null && savedCanvasId !== null) {
+    setCurrentCanvasIndex(parseInt(savedIndex));
+    setCurrentCanvasId(parseInt(savedCanvasId));
+  } else {
+    // Panggil API dengan Axios
+    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/first-canvas`)
+      .then((response) => {
+        const data = response.data;
+        if (data.success && data.data) {
+          const canvasId = data.data.id_canvas;
+          console.log(canvasId + "lah")
+          setCurrentCanvasIndex(0); // Karena ini canvas pertama
+          setCurrentCanvasId(canvasId);
+          localStorage.setItem("currentCanvasIndex", "0");
+          localStorage.setItem("currentCanvasId", canvasId.toString());
+        } else {
+          console.error("Gagal mendapatkan canvas pertama:", data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Terjadi kesalahan saat memanggil API canvas:", error);
+      });
+  }
+}, [setCurrentCanvasIndex, setCurrentCanvasId]);
 useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
@@ -206,9 +226,7 @@ useEffect(() => {
       console.log("Visualization saved response:", response.data);
       // Cek status sukses dari response API
       if (response.data.status !== 'success') {
-        //  console.error("Error saving visualization (API returned non-success):", response.data.message, response.data.errors);
-         // Lemparkan error agar bisa ditangkap oleh .catch() di pemanggil
-        //  throw new Error(response.data.message || "API save failed");
+        
       }
       
       // Periksa apakah data dan id_visualization ada dalam response
@@ -806,6 +824,7 @@ useEffect(() => {
           visualizationType={viz.type}        
           visualizationConfig={viz.config}   
           currentCanvasIndex={currentCanvasIndex} 
+          currentCanvasId={currentCanvasId}
         />
      ) : (
         <p style={{ color: 'red', padding: '10px' }}>Tipe visualisasi tidak valid atau tidak ditemukan.</p>

@@ -25,6 +25,7 @@ const Sidebar = ({}) => {
   const [visualizationType, setVisualizationType] = useState("");
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
+  const [currentCanvasId, setCurrentCanvasId] = useState(0);
 
   
 
@@ -132,6 +133,7 @@ useEffect(() => {
   const handleVisualizationTypeChange = (type) => {
     setVisualizationType(type);
     if (canvasQuery) {
+      console.log(`ini baru ${type}`)
       setAddNewVisualization(true);
     }
   };
@@ -272,11 +274,14 @@ useEffect(() => {
         setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
          canvases={canvases}  // Pass canvases as a prop
         setCanvases={setCanvases}  // Pass setCanvases to Header component
+        setCurrentCanvasId={setCurrentCanvasId}
       />
       
       <SidebarCanvas
   currentCanvasIndex={currentCanvasIndex}
   setCurrentCanvasIndex={setCurrentCanvasIndex}
+  currentCanvasId={currentCanvasId}
+  setCurrentCanvasId={setCurrentCanvasId}
 />
 
 
@@ -290,9 +295,7 @@ useEffect(() => {
         onVisualizationTypeChange={handleVisualizationTypeChange}
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
-        visualizationConfig={visualizationConfig} 
-        currentCanvasIndex={currentCanvasIndex}
-        setCurrentCanvasIndex={setCurrentCanvasIndex}
+        visualizationConfig={visualizationConfig}
       />
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}
@@ -309,6 +312,8 @@ useEffect(() => {
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         canvases={canvases}  // Pass canvases to Canvas
         setCanvases={setCanvases}  // Pass setCanvases to Canvas
+        currentCanvasId={currentCanvasId}
+        setCurrentCanvasId={setCurrentCanvasId}
       />
       
     </>

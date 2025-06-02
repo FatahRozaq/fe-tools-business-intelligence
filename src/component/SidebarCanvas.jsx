@@ -5,7 +5,7 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import axios from "axios";
 import SubmitButton from "./Button/SubmitButton";
 
-const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
+const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanvasId, setCurrentCanvasId }) => {
   const [canvases, setCanvases] = useState([]);
   const [menuVisibleIndex, setMenuVisibleIndex] = useState(null);
   const [editIndex, setEditIndex] = useState(null); // Track the index of the canvas being edited
@@ -30,6 +30,16 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
         console.error("Error:", err);
       });
   }, []);
+
+  const handleCanvasClick = (canvas, index) => {
+    if (menuVisibleIndex === null) {
+      setCurrentCanvasIndex(index);
+      setCurrentCanvasId(canvas.id);
+      localStorage.setItem("currentCanvasIndex", index);
+      localStorage.setItem("currentCanvasId", canvas.id);
+      console.log("Canvas selected:", { index, id: canvas.id });
+    }
+  };
 
   const handleRename = (index) => {
     setEditIndex(index);
@@ -70,6 +80,7 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
             setMenuVisibleIndex(null);
             if (currentCanvasIndex === index) {
               setCurrentCanvasIndex(0);
+              setCurrentCanvasId(updatedCanvases.length > 0 ? updatedCanvases[0].id : null);
             }
           } else {
             console.error("Failed to delete the canvas:", res.data.message);
@@ -107,7 +118,6 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
     setNewName(e.target.value); // Update the name input
   };
 
-
   const saveNewCanvas = () => {
     if (newName.trim() === "") return;
 
@@ -122,11 +132,16 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
       .then((res) => {
         if (res.data.success) {
           const newCanvas = res.data.canvas;
-          // const idCanvas = res.data.canvas.id_canvas;
-          setCanvases((prevCanvases) => [...prevCanvases, newCanvas]);
-          setCurrentCanvasIndex(canvases.length);
-          localStorage.setItem("currentCanvasIndex", canvases.length);
+          const newCanvases = [...canvases, newCanvas];
+          setCanvases(newCanvases);
+          
+          // Set the newly created canvas as current
+          const newIndex = canvases.length;
+          setCurrentCanvasIndex(newIndex);
+          setCurrentCanvasId(newCanvas.id);
+          localStorage.setItem("currentCanvasIndex", newIndex);
           setAddingCanvas(false);
+          setNewName("");
         } else {
           console.error("Failed to add the new canvas:", res.data.message);
         }
@@ -164,12 +179,7 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
                 marginBottom: "6px",
                 position: "relative",
               }}
-              onClick={() => {
-                if (menuVisibleIndex === null) {
-                  setCurrentCanvasIndex(index);
-                  localStorage.setItem("currentCanvasIndex", index);
-                }
-              }}
+              onClick={() => handleCanvasClick(canvas, index)}
             >
               {editIndex === index ? (
                 <input
@@ -212,7 +222,6 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex }) => {
                 <BsThreeDotsVertical />
               </span>
               
-
               {menuVisibleIndex === index && (
                 <div
                   ref={menuRef}
