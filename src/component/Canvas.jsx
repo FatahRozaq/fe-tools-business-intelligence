@@ -116,7 +116,7 @@ useEffect(() => {
     setCurrentCanvasId(parseInt(savedCanvasId));
   } else {
     // Panggil API dengan Axios
-    axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/first-canvas`)
+    axios.get(`${config.API_BASE_URL}api/kelola-dashboard/first-canvas`)
       .then((response) => {
         const data = response.data;
         if (data.success && data.data) {
