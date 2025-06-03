@@ -479,7 +479,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     const chartOptionsList = [
       { type: "bar", label: "Batang" }, { type: "line", label: "Line" },
       { type: "pie", label: "Pie" }, { type: "donut", label: "Donut" },
-      { type: "table", label: "Tabel" }, { type: "card", label: "Card" }
+      { type: "", label: "Tabel" }, { type: "card", label: "Card" }
     ];
     return (
       <div className="chart-controls flex mb-4 gap-2">

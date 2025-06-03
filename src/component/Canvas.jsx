@@ -817,6 +817,7 @@ useEffect(() => {
         <DataTableComponent
           data={data} 
           query={viz.query}
+          visualizationType={viz.type}  
         />
      ) : viz.type ? (
         <Visualisasi
@@ -825,6 +826,8 @@ useEffect(() => {
           visualizationConfig={viz.config}   
           currentCanvasIndex={currentCanvasIndex} 
           currentCanvasId={currentCanvasId}
+          data={data} 
+          query={viz.query}
         />
      ) : (
         <p style={{ color: 'red', padding: '10px' }}>Tipe visualisasi tidak valid atau tidak ditemukan.</p>

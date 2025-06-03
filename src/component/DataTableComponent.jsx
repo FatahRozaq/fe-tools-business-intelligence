@@ -6,13 +6,16 @@ import { FilterMatchMode } from "primereact/api";
 import axios from "axios";
 import config from "../config";
 
-const DataTableComponent = ({ data, query }) => {
+const DataTableComponent = ({ data, query, visualizationType}) => {
   const [filters, setFilters] = React.useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   });
   const [queryResult, setQueryResult] = useState(null);
   const [selectedText, setSelectedText] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [activeVisualizationType, setActiveVisualizationType] = useState(
+      visualizationType || requestPayload?.visualizationType || "bar"
+  );
 
   useEffect(() => {
     if (query) {
@@ -51,6 +54,27 @@ const DataTableComponent = ({ data, query }) => {
         });
     }
   }, [query]);
+
+  const renderChartControls = () => {
+    const chartOptionsList = [
+      { type: "bar", label: "Batang" }, { type: "line", label: "Line" },
+      { type: "pie", label: "Pie" }, { type: "donut", label: "Donut" },
+      { type: "", label: "Tabel" }, { type: "card", label: "Card" }
+    ];
+    return (
+      <div className="chart-controls flex mb-4 gap-2">
+        {chartOptionsList.map((option) => (
+          <button
+            key={option.type}
+            className={`px-3 py-1 rounded text-sm ${activeVisualizationType === option.type ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
+            onClick={() => handleVisualizationTypeChange(option.type)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   const renderHeader = () => {
     return (
@@ -112,6 +136,7 @@ const DataTableComponent = ({ data, query }) => {
 
   return (
     <div className="card compact-table-container" style={{ height: "100%", display: "flex", flexDirection: "column", border: "none", boxShadow: "none" }}>
+      {renderChartControls()}
       <DataTable
         value={queryResult || data}
         paginator
