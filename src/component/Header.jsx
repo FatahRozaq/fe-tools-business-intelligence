@@ -5,15 +5,20 @@ import logo from "../assets/img/Logo TBI.png";
 import config from "../config";
 import axios from "axios";
 
-const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases }) => {
-  // const [canvases, setCanvases] = useState([]);
+const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases, currentCanvasId, setCurrentCanvasId }) => {
   const [totalCanvases, setTotalCanvases] = useState(0);
 
   useEffect(() => {
     // Cek apakah ada currentCanvasIndex yang disimpan di localStorage
     const savedIndex = localStorage.getItem("currentCanvasIndex");
+    const savedCanvasId = localStorage.getItem("currentCanvasId");
+    
     if (savedIndex !== null && typeof setCurrentCanvasIndex === 'function') {
       setCurrentCanvasIndex(parseInt(savedIndex));
+    }
+    
+    if (savedCanvasId !== null && typeof setCurrentCanvasId === 'function') {
+      setCurrentCanvasId(parseInt(savedCanvasId));
     }
 
     // Fetch canvases from API
@@ -37,28 +42,38 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
       .catch((error) => {
         console.error("Error fetching canvases:", error);
       });
-  }, [setCanvases]);
+  }, [setCanvases, setCurrentCanvasIndex, setCurrentCanvasId]);
 
   // Fungsi untuk pindah ke canvas berikutnya
   const goToNextCanvas = () => {
-    if (currentCanvasIndex < totalCanvases - 1) {
+    if (currentCanvasIndex < totalCanvases - 1 && canvases.length > 0) {
       const newIndex = currentCanvasIndex + 1;
+      const newCanvasId = canvases[newIndex].id;
+      
       setCurrentCanvasIndex(newIndex);
+      setCurrentCanvasId(newCanvasId);
+      
       localStorage.setItem("currentCanvasIndex", newIndex);
+      localStorage.setItem("currentCanvasId", newCanvasId);
       
       // Log canvas index and id_canvas when moving to the next canvas
-      console.log(`Canvas Index: ${newIndex}, Canvas ID: ${canvases[newIndex].id}`);
+      console.log(`Canvas Index: ${newIndex}, Canvas ID: ${newCanvasId}`);
     }
   };
 
   const goToPreviousCanvas = () => {
-    if (currentCanvasIndex > 0) {
+    if (currentCanvasIndex > 0 && canvases.length > 0) {
       const newIndex = currentCanvasIndex - 1;
+      const newCanvasId = canvases[newIndex].id;
+      
       setCurrentCanvasIndex(newIndex);
+      setCurrentCanvasId(newCanvasId);
+      
       localStorage.setItem("currentCanvasIndex", newIndex);
+      localStorage.setItem("currentCanvasId", newCanvasId);
       
       // Log canvas index and id_canvas when moving to the previous canvas
-      console.log(`Canvas Index: ${newIndex}, Canvas ID: ${canvases[newIndex].id}`);
+      console.log(`Canvas Index: ${newIndex}, Canvas ID: ${newCanvasId}`);
     }
   };
 
@@ -75,12 +90,21 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
             setCanvases(updatedCanvases);
             setTotalCanvases(updatedCanvases.length); // Update the total canvases count
             
-            // Adjust currentCanvasIndex if the deleted canvas was the current one
+            // Adjust currentCanvasIndex and currentCanvasId if the deleted canvas was the current one
             if (currentCanvasIndex === index) {
               if (updatedCanvases.length === 0) {
                 setCurrentCanvasIndex(0); // No canvases left, set to index 0
+                setCurrentCanvasId(null); // No canvases left
+                localStorage.removeItem("currentCanvasId");
               } else if (index === updatedCanvases.length) {
-                setCurrentCanvasIndex(index - 1); // If deleting the last canvas, go to the previous one
+                const newIndex = index - 1;
+                setCurrentCanvasIndex(newIndex); // If deleting the last canvas, go to the previous one
+                setCurrentCanvasId(updatedCanvases[newIndex].id);
+                localStorage.setItem("currentCanvasId", updatedCanvases[newIndex].id);
+              } else {
+                // If deleting in the middle, keep same index but update canvas ID
+                setCurrentCanvasId(updatedCanvases[currentCanvasIndex].id);
+                localStorage.setItem("currentCanvasId", updatedCanvases[currentCanvasIndex].id);
               }
             }
 

@@ -13,6 +13,7 @@ import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants";
 import Header from "./Header";
 import SidebarCanvas from "./SidebarCanvas";
 import Visualiaze from "./Visualiaze";
+import { useRef } from 'react';
 
 const Sidebar = ({}) => {
   const [tables, setTables] = useState([]);
@@ -23,8 +24,10 @@ const Sidebar = ({}) => {
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState("");
   const [visualizationType, setVisualizationType] = useState("");
+  const visualizationTypeRef = useRef(visualizationType);
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
+  const [currentCanvasId, setCurrentCanvasId] = useState(0);
 
   
 
@@ -130,21 +133,64 @@ useEffect(() => {
   }, [addNewVisualization, canvasQuery, visualizationType]);
 
   const handleVisualizationTypeChange = (type) => {
+    visualizationTypeRef.current = type;
     setVisualizationType(type);
-    if (canvasQuery) {
-      setAddNewVisualization(true);
+    
+    // Only update if there's a selected visualization
+    if (selectedVisualization && canvasQuery) {
+        // Update the selected visualization's type
+        updateSelectedVisualizationType(type);
+    } else if (canvasQuery && !selectedVisualization) {
+        // This is for creating a new visualization when none is selected
+        setAddNewVisualization(true);
     }
-  };
+};
 
-  // Handle visualization selection for configuration
-  const handleVisualizationSelect = (visualization) => {
+// New function to update only the selected visualization
+const updateSelectedVisualizationType = (newType) => {
+    if (!selectedVisualization) return;
+
+    // Update the canvases state to modify only the selected visualization
+    setCanvases(prevCanvases => 
+        prevCanvases.map(canvas => 
+            canvas.id === currentCanvasId 
+                ? {
+                    ...canvas,
+                    visualizations: canvas.visualizations.map(viz => 
+                        viz.id === selectedVisualization.id 
+                            ? { ...viz, type: newType }
+                            : viz
+                    )
+                }
+                : canvas
+        )
+    );
+
+    // Update the selectedVisualization state to reflect the change
+    setSelectedVisualization(prev => ({
+        ...prev,
+        type: newType
+    }));
+};
+
+// Sync ref with state
+useEffect(() => {
+    visualizationTypeRef.current = visualizationType;
+    console.log(`Visualization type updated: ${visualizationType}`);
+}, [visualizationType]);
+
+// Handle visualization selection for configuration
+const handleVisualizationSelect = (visualization) => {
     setSelectedVisualization(visualization);
     if (visualization) {
-      setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG }); // Gunakan spread operator
+        setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG });
+        // Set the visualization type to match the selected visualization
+        setVisualizationType(visualization.type || "");
     } else {
-      setVisualizationConfig({ ...DEFAULT_CONFIG }); // Gunakan spread operator
+        setVisualizationConfig({ ...DEFAULT_CONFIG });
+        setVisualizationType("");
     }
-  };
+};
 
   // Handle updating configuration for the selected visualization
   const handleConfigUpdate = (config) => {
@@ -272,11 +318,14 @@ useEffect(() => {
         setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
          canvases={canvases}  // Pass canvases as a prop
         setCanvases={setCanvases}  // Pass setCanvases to Header component
+        setCurrentCanvasId={setCurrentCanvasId}
       />
       
       <SidebarCanvas
   currentCanvasIndex={currentCanvasIndex}
   setCurrentCanvasIndex={setCurrentCanvasIndex}
+  currentCanvasId={currentCanvasId}
+  setCurrentCanvasId={setCurrentCanvasId}
 />
 
 
@@ -290,7 +339,7 @@ useEffect(() => {
         onVisualizationTypeChange={handleVisualizationTypeChange}
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
-        visualizationConfig={visualizationConfig} 
+        visualizationConfig={visualizationConfig}
       />
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}
@@ -307,6 +356,9 @@ useEffect(() => {
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         canvases={canvases}  // Pass canvases to Canvas
         setCanvases={setCanvases}  // Pass setCanvases to Canvas
+        currentCanvasId={currentCanvasId}
+        setCurrentCanvasId={setCurrentCanvasId}
+        onUpdateVisualizationType={updateSelectedVisualizationType}
       />
       
     </>
