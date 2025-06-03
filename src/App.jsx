@@ -1,5 +1,5 @@
 // App.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./assets/css/dashboard.css";
@@ -15,12 +15,24 @@ import 'primereact/resources/themes/lara-light-indigo/theme.css';
 import 'primereact/resources/primereact.min.css';
 import VisualisasiChart from "./component/Visualiaze";
 import Canvas from "./component/Canvas";
+import axios from "axios";
 
 function App() {
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState('login'); // 'login' atau 'register'
+
+  useEffect(() => {
+    // Cek apakah ada token tersimpan di localStorage
+    const token = localStorage.getItem('token');
+    const tokenType = localStorage.getItem('token_type');
+    if (token && tokenType) {
+      // Set default header untuk axios
+      axios.defaults.headers.common['Authorization'] = `${tokenType} ${token}`;
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   // Function untuk handle successful registration/login
   const handleAuthSuccess = () => {
