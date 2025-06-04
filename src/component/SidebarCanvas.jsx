@@ -12,9 +12,10 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
   const [newName, setNewName] = useState(""); // Track the new name input value
   const menuRef = useRef(null);
   const inputRef = useRef(null); // Reference to the input field for autofocus
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingCanvas, setIsAddingCanvas] = useState(false); // Track if canvas is being added
   const [addingCanvas, setAddingCanvas] = useState(false); // To control the newly added canvas
 
+  // Fetch canvases on component mount and after adding a new canvas
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
@@ -22,6 +23,15 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
         if (res.data.success) {
           const sortedCanvases = res.data.canvases.sort((a, b) => a.id - b.id);
           setCanvases(sortedCanvases);
+
+          // If we are adding a canvas, maintain the current canvas index and id
+          if (isAddingCanvas) {
+            setCurrentCanvasId(sortedCanvases[sortedCanvases.length - 1].id);
+            setCurrentCanvasIndex(sortedCanvases.length - 1);
+            localStorage.setItem("currentCanvasId", sortedCanvases[sortedCanvases.length - 1].id);
+            localStorage.setItem("currentCanvasIndex", sortedCanvases.length - 1);
+            setIsAddingCanvas(false); // Reset adding canvas state
+          }
         } else {
           console.error("Gagal mengambil daftar canvas");
         }
@@ -29,7 +39,7 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
       .catch((err) => {
         console.error("Error:", err);
       });
-  }, []);
+  }, [isAddingCanvas, setCurrentCanvasIndex, setCurrentCanvasId]);
 
   const handleCanvasClick = (canvas, index) => {
     if (menuVisibleIndex === null) {
@@ -119,36 +129,50 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
   };
 
   const saveNewCanvas = () => {
-    if (newName.trim() === "") return;
+  if (newName.trim() === "") return;
 
-    axios
-      .post(`${config.API_BASE_URL}/api/kelola-dashboard/canvas`, {
-        name: newName,
-        id_project: 1,
-        created_by: "admin",
-        created_time: new Date().toISOString(),
-        is_deleted: false,
-      })
-      .then((res) => {
-        if (res.data.success) {
-          const newCanvas = res.data.canvas;
-          const newCanvases = [...canvases, newCanvas];
-          setCanvases(newCanvases);
-          
-          // Set the newly created canvas as current
-          const newIndex = canvases.length;
-          setCurrentCanvasIndex(newIndex);
-          setCurrentCanvasId(newCanvas.id);
-          localStorage.setItem("currentCanvasIndex", newIndex);
-          setAddingCanvas(false);
-          setNewName("");
-        } else {
-          console.error("Failed to add the new canvas:", res.data.message);
-        }
-      })
-      .catch((err) => {
-        console.error("Error adding new canvas:", err);
-      });
+  axios
+    .post(`${config.API_BASE_URL}/api/kelola-dashboard/canvas`, {
+      name: newName,
+      id_project: 1,
+      created_by: "admin",
+      created_time: new Date().toISOString(),
+      is_deleted: false,
+    })
+    .then((res) => {
+      if (res.data.success) {
+        const newCanvas = res.data.canvas;
+        const newCanvases = [...canvases, newCanvas];
+        setCanvases(newCanvases);
+
+        // Set the newly created canvas as current
+        setIsAddingCanvas(true); // Trigger the re-fetch with the current canvas data
+        setNewName(""); // Clear the name input
+
+        // Set the current canvas index and ID
+        const newIndex = newCanvases.length - 1;
+        setCurrentCanvasIndex(newIndex);
+        setCurrentCanvasId(newCanvas.id);
+        localStorage.setItem("currentCanvasIndex", newIndex);
+        localStorage.setItem("currentCanvasId", newCanvas.id);
+
+        // Close the "add canvas" input
+        setAddingCanvas(false); // Hide the input after adding
+
+        console.log(`Canvas Index: ${newIndex}, Canvas ID: ${newCanvas.id}`);
+      } else {
+        console.error("Failed to add the new canvas:", res.data.message);
+      }
+    })
+    .catch((err) => {
+      console.error("Error adding new canvas:", err);
+    });
+};
+
+
+  const cancelAddCanvas = () => {
+    setAddingCanvas(false);
+    setNewName(""); // Reset the input field
   };
 
   return (
@@ -273,7 +297,6 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
       )}
 
       {/* Add Canvas Input and Button Below Canvas List */}
-      {/* Add Canvas Button */}
       <div className="d-flex justify-content-center mt-3">
         {!addingCanvas ? (
           <SubmitButton onClick={handleAddCanvas} text="Tambah Canvas" />
@@ -288,6 +311,21 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
               style={{ fontSize: "1rem", padding: "8px 12px", width: "100%" }}
             />
             <SubmitButton onClick={saveNewCanvas} text="Simpan Canvas" />
+            <button
+              onClick={cancelAddCanvas}
+              style={{
+                marginTop: "8px",
+                padding: "8px 12px",
+                fontSize: "1rem",
+                backgroundColor: "#f0f0f0",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                cursor: "pointer",
+                color: "#666",
+              }}
+            >
+              Batal
+            </button>
           </div>
         )}
       </div>
