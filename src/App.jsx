@@ -16,12 +16,14 @@ import 'primereact/resources/primereact.min.css';
 import VisualisasiChart from "./component/Visualiaze";
 import Canvas from "./component/Canvas";
 import axios from "axios";
+import { AiOutlineLogout } from "react-icons/ai";
 
 function App() {
   const [canvasData, setCanvasData] = useState([]);
   const [canvasQuery, setCanvasQuery] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState('login'); // 'login' atau 'register'
+  const [userAccessLevel, setUserAccessLevel] = useState(null);
 
   useEffect(() => {
     // Cek apakah ada token tersimpan di localStorage
@@ -31,17 +33,26 @@ function App() {
       // Set default header untuk axios
       axios.defaults.headers.common['Authorization'] = `${tokenType} ${token}`;
       setIsAuthenticated(true);
+      const accessLevel = localStorage.getItem('access');
+      setUserAccessLevel(accessLevel || 'none');
     }
   }, []);
 
   // Function untuk handle successful registration/login
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
+    const accessLevel = localStorage.getItem('access');
+    setUserAccessLevel(accessLevel || 'none');
   };
 
   // Function untuk beralih antara login dan register
   const switchAuthView = (view) => {
     setAuthView(view);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthView('login');
   };
 
   // Jika belum authenticated, tampilkan halaman auth (login/register)
@@ -63,6 +74,29 @@ function App() {
     }
   }
 
+  if (userAccessLevel === 'none') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+          <button 
+            className="btn btn-outline-danger btn-sm d-flex align-items-center"
+            onClick={() => {
+                localStorage.clear();
+                delete axios.defaults.headers.common['Authorization'];
+                window.location.reload();
+            }}
+            title="Logout"
+          >
+            <AiOutlineLogout className="me-1" />
+            Keluar
+          </button>
+        </div>
+        <h1>Akses Ditolak</h1>
+        <p>Anda belum memiliki akses untuk melihat dasbor ini.</p>
+      </div>
+    );
+  }
+
   return (
     <>
     
@@ -70,10 +104,15 @@ function App() {
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
       /> */}
+      <Header
+      onLogout={handleLogout}
+      userAccessLevel={userAccessLevel}
+      />
       <div className="main-container">
         <Sidebar 
           setCanvasData={setCanvasData} 
-          setCanvasQuery={setCanvasQuery} 
+          setCanvasQuery={setCanvasQuery}
+          userAccessLevel={userAccessLevel}
         />
         {/* <Canvas currentCanvasIndex={currentCanvasIndex}/> */}
         {/* <Canvas 

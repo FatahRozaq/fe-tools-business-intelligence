@@ -1,0 +1,49 @@
+/* Styling untuk dropdown user authorization */
+#user-dropdown-container .position-absolute {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+}
+
+#user-dropdown-container .cursor-pointer:hover {
+    background-color: #f8f9fa;
+}
+
+/* Smooth transitions */
+#user-dropdown-container .position-absolute {
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scrollbar styling for dropdown */
+#user-dropdown-container .overflow-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+#user-dropdown-container .overflow-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#user-dropdown-container .overflow-auto::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+#user-dropdown-container .overflow-auto::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Hover effect for email items */
+.hover-bg-light:hover {
+    background-color: #f8f9fa !important;
+}

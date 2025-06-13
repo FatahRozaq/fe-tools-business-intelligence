@@ -15,7 +15,7 @@ import SidebarCanvas from "./SidebarCanvas";
 import Visualiaze from "./Visualiaze";
 import { useRef } from 'react';
 
-const Sidebar = ({}) => {
+const Sidebar = ({userAccessLevel}) => {
   const [tables, setTables] = useState([]);
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
@@ -27,20 +27,16 @@ const Sidebar = ({}) => {
   const visualizationTypeRef = useRef(visualizationType);
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
-  const [currentCanvasId, setCurrentCanvasId] = useState(0);
-  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
-
-  
-
+  const [currentCanvasId, setCurrentCanvasId] = useState(0);  
   const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
-
   // Add a state to track the selected visualization for configuration
   const [selectedVisualization, setSelectedVisualization] = useState(null);
-
   // Add a new state to track whether we should add a new visualization
   const [addNewVisualization, setAddNewVisualization] = useState(false);
+  const canEdit = userAccessLevel === 'admn' || userAccessLevel === 'edit';
 
 useEffect(() => {
+  if (!canEdit) return;
   const sidebarData = document.getElementById("sidebar-data");
   const sidebarDiagram = document.getElementById("sidebar-diagram");
   const sidebarQuery = document.getElementById("sidebar-query");
@@ -87,10 +83,11 @@ useEffect(() => {
       sidebarDiagram.style.display = "none";
     });
   }
-}, []);
+}, [canEdit]);
 
   useEffect(() => {
-    axios
+    if (canEdit) {
+      axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
       .then((response) => {
         setTables(response.data.data || []);
@@ -100,10 +97,11 @@ useEffect(() => {
         console.error("Gagal mengambil data tabel:", error);
         setLoading(false);
       });
-  }, []);
+    }
+  }, [canEdit]);
 
   const fetchColumns = (table) => {
-    if (columns[table]) return;
+    if (columns[table] || !canEdit) return;
 
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
@@ -116,6 +114,7 @@ useEffect(() => {
   };
 
   const handleQuerySubmit = (query) => {
+    if (!canEdit) return;
     setCanvasQuery(query);
     setVisualizationConfig({ ...DEFAULT_CONFIG }); 
     setAddNewVisualization(true);
@@ -134,6 +133,7 @@ useEffect(() => {
   }, [addNewVisualization, canvasQuery, visualizationType]);
 
   const handleVisualizationTypeChange = (type) => {
+    if (!canEdit) return;
     visualizationTypeRef.current = type;
     setVisualizationType(type);
     
@@ -182,6 +182,7 @@ useEffect(() => {
 
 // Handle visualization selection for configuration
 const handleVisualizationSelect = (visualization) => {
+  if (!canEdit) return;
     setSelectedVisualization(visualization);
     if (visualization) {
         setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG });
@@ -195,6 +196,7 @@ const handleVisualizationSelect = (visualization) => {
 
   // Handle updating configuration for the selected visualization
   const handleConfigUpdate = (config) => {
+    if (!canEdit) return;
     setVisualizationConfig(config);
 
     // If a visualization is selected, update its configuration
@@ -225,6 +227,8 @@ const handleVisualizationSelect = (visualization) => {
 
   return (
     <>
+    {canEdit && (
+      <>
       {loading ? (
         <div className="alert alert-info">Loading...</div>
       ) : showAddDatasource ? (
@@ -318,20 +322,21 @@ const handleVisualizationSelect = (visualization) => {
       <Header
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
-         canvases={canvases}  // Pass canvases as a prop
+        canvases={canvases}  // Pass canvases as a prop
         setCanvases={setCanvases}  // Pass setCanvases to Header component
         setCurrentCanvasId={setCurrentCanvasId}
         totalCanvasCount={totalCanvasCount}
       />
-      
+        
       <SidebarCanvas
-  currentCanvasIndex={currentCanvasIndex}
-  setCurrentCanvasIndex={setCurrentCanvasIndex}
-  currentCanvasId={currentCanvasId}
-  setCurrentCanvasId={setCurrentCanvasId}
-  totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex}
+        currentCanvasId={currentCanvasId}
+        setCurrentCanvasId={setCurrentCanvasId}
+        totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
         setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
-/>
+        userAccessLevel={userAccessLevel}
+      />
 
 
       <SidebarData
@@ -349,6 +354,8 @@ const handleVisualizationSelect = (visualization) => {
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange} />
+      </>
+    )}
         
       <Canvas
         data={canvasData}
@@ -364,10 +371,9 @@ const handleVisualizationSelect = (visualization) => {
         currentCanvasId={currentCanvasId}
         setCurrentCanvasId={setCurrentCanvasId}
         onUpdateVisualizationType={updateSelectedVisualizationType}
+        userAccessLevel={userAccessLevel}
       />
-      
     </>
-    
   );
 };
 
