@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "react-apexcharts";
 import axios from "axios";
 import config from "../config"; // Assuming this path is correct
@@ -110,6 +110,8 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   const [activeVisualizationType, setActiveVisualizationType] = useState(
     visualizationType || requestPayload?.visualizationType || "bar"
   );
+
+  const skipConfigUpdateRef = useRef(true);
   
   useEffect(() => {
     if (visualizationType) {
@@ -428,8 +430,16 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         delete persistConfig.visualizationOptions;
     }
 
+    if (skipConfigUpdateRef.current) {
+    skipConfigUpdateRef.current = false;
+    return;
+  }
+
     if (!savedVisualizationId) { // Initial Save because savedVisualizationId was reset
-      console.log("Effect 2: Attempting initial save...");
+      // console.log("Effect 2: Attempting initial save...");
+      console.log(
+      `Config changed, updating visualization ID ${savedVisualizationId}`
+    );
       const savePayload = {
           id_canvas: currentCanvasId, 
           id_visualization: requestPayload.id_visualization,

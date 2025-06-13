@@ -28,6 +28,7 @@ const Sidebar = ({}) => {
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
   const [currentCanvasId, setCurrentCanvasId] = useState(0);
+  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
 
   
 
@@ -212,6 +213,7 @@ const handleVisualizationSelect = (visualization) => {
         if (response.data.success) {
           const activeCanvases = response.data.canvases;
           setCanvases(activeCanvases); // Update canvases state
+          setTotalCanvasCount(activeCanvases.length);
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
@@ -319,6 +321,7 @@ const handleVisualizationSelect = (visualization) => {
          canvases={canvases}  // Pass canvases as a prop
         setCanvases={setCanvases}  // Pass setCanvases to Header component
         setCurrentCanvasId={setCurrentCanvasId}
+        totalCanvasCount={totalCanvasCount}
       />
       
       <SidebarCanvas
@@ -326,6 +329,8 @@ const handleVisualizationSelect = (visualization) => {
   setCurrentCanvasIndex={setCurrentCanvasIndex}
   currentCanvasId={currentCanvasId}
   setCurrentCanvasId={setCurrentCanvasId}
+  totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+        setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
 />
 
 
