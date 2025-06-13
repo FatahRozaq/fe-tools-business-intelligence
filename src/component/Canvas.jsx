@@ -18,7 +18,8 @@ const Canvas = ({
   canvases,
   setCanvases,
   currentCanvasId,
-  setCurrentCanvasId
+  setCurrentCanvasId,
+  userAccessLevel
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
@@ -28,6 +29,7 @@ const Canvas = ({
 
   const zoomSpeed = 0.005;
   const containerRef = useRef(null);
+  const isViewMode = userAccessLevel === 'view';
 
   // Fungsi utilitas untuk menghasilkan ID unik
   const generateUniqueId = () => {
@@ -340,6 +342,7 @@ useEffect(() => {
 
   // useEffect untuk menambahkan visualisasi baru ketika props berubah
   useEffect(() => {
+  if (isViewMode) return;
   // Hanya jalan jika ada query, tipe visualisasi, dan data datasource
   if (query && visualizationType && data) {
     // Cek apakah visualisasi dengan query dan tipe yang sama sudah ada
@@ -397,10 +400,11 @@ useEffect(() => {
     }
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI]); // Tambahkan data.id_datasource dan saveVisualizationToAPI
+}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI, isViewMode]); // Tambahkan data.id_datasource dan saveVisualizationToAPI
 
   // useEffect untuk mengupdate config visualisasi yang dipilih
   useEffect(() => {
+    if (isViewMode) return;
     // Hanya jalan jika ada visualisasi yang dipilih dan config baru
     if (selectedVisualization && visualizationConfig) {
         // Cari index visualisasi yang dipilih di state
@@ -438,7 +442,7 @@ useEffect(() => {
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visualizationConfig, selectedVisualization, queueSaveVisualization]); // Tidak memasukkan 'visualizations' untuk mencegah loop
+  }, [visualizationConfig, selectedVisualization, queueSaveVisualization, isViewMode]); // Tidak memasukkan 'visualizations' untuk mencegah loop
 
   // useEffect untuk handle zoom dengan Ctrl + Scroll
   useEffect(() => {
@@ -470,14 +474,16 @@ useEffect(() => {
 
   // Callback untuk menghandle klik pada area kosong canvas (unselect)
   const handleCanvasClick = useCallback((event) => {
+    if (isViewMode) return;
     // Jika target klik adalah elemen canvas itu sendiri (bukan child)
     if (event.target === event.currentTarget) {
       onVisualizationSelect(null); // Panggil prop unselect
     }
-  }, [onVisualizationSelect]);
+  }, [onVisualizationSelect, isViewMode]);
 
   // useEffect untuk menghandle tombol Escape (unselect)
   useEffect(() => {
+    if (isViewMode) return;
     const handleKeyDown = (event) => {
       // Jika tombol yang ditekan adalah 'Escape' dan ada visualisasi yang dipilih
       if (event.key === 'Escape' && selectedVisualization) {
@@ -491,10 +497,15 @@ useEffect(() => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedVisualization, onVisualizationSelect]); // Dependensi pada state selection dan fungsi unselect
+  }, [selectedVisualization, onVisualizationSelect, isViewMode]); // Dependensi pada state selection dan fungsi unselect
 
   // useEffect untuk setup interact.js (drag & resize)
   useEffect(() => {
+    if (isViewMode) {
+      console.log("View mode: Unsetting interact.js.");
+      interact('.visualization-container').unset();
+      return;
+    }
     // Jangan setup jika masih loading atau belum ada visualisasi
     if (isLoading || visualizations.length === 0) {
         // Jika ada instance interact yg tersisa dari render sebelumnya, coba unset
@@ -686,10 +697,14 @@ useEffect(() => {
       // interact('.visualization-container').unset();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visualizations, isLoading, onVisualizationSelect, queueSaveVisualization]); // Dependensi penting untuk re-setup interact
+  }, [visualizations, isLoading, onVisualizationSelect, queueSaveVisualization, isViewMode]); // Dependensi penting untuk re-setup interact
 
   // Callback untuk menghapus visualisasi
   const handleRemoveVisualization = useCallback((id) => {
+  if (isViewMode) {
+      console.warn("Deletion is not allowed in view mode.");
+      return;
+  }
   console.log(`Attempting to remove visualization ID: ${id}`);
   
   // Dapatkan visualisasi yang akan dihapus
@@ -733,19 +748,20 @@ useEffect(() => {
         console.warn(`Visualization ID ${id} not found in database. It may be a temporary ID waiting for save.`);
       }
     });
-}, [selectedVisualization, onVisualizationSelect, pendingSaveTimeouts, visualizations]);
+}, [selectedVisualization, onVisualizationSelect, pendingSaveTimeouts, visualizations, isViewMode]);
 
   // Callback untuk memilih visualisasi saat diklik
   const handleVisualizationClick = useCallback((viz) => {
+    if (isViewMode) return;
     console.log(`Visualization clicked: ${viz.id}`);
     onVisualizationSelect(viz); // Panggil prop onVisualizationSelect
-  }, [onVisualizationSelect]);
+  }, [onVisualizationSelect, isViewMode]);
 
   // Fungsi untuk me-render semua visualisasi
   const renderVisualizations = () => {
     return visualizations.map(viz => {
       // Cek apakah visualisasi ini sedang dipilih
-      const isSelected = selectedVisualization && selectedVisualization.id === viz.id;
+      const isSelected = !isViewMode && selectedVisualization && selectedVisualization.id === viz.id;
 
       // Render div container untuk setiap visualisasi
       return (
@@ -765,14 +781,16 @@ useEffect(() => {
     borderRadius: "8px",
     overflow: "hidden", // Konten tidak boleh meluber keluar box
     position: "absolute", // Krusial untuk positioning via transform
-    cursor: "grab", // Cursor default
-    touchAction: "none", // Rekomendasi interact.js
+    cursor: isViewMode ? "default" : "grab", // Cursor default
+    pointerEvents: isViewMode ? 'auto' : 'all',
+    touchAction: isViewMode ? 'auto' : "none", // Rekomendasi interact.js
     borderColor: isSelected ? "hsl(206, 90%, 55%)" : "transparent", // Border saat selected
     borderWidth: "2px",
     borderStyle: "solid",
     zIndex: isSelected ? 10 : 1 // Visualisasi terpilih di atas
   }}
   onClick={(e) => {
+    if (isViewMode) return;
     const target = e.target;
     if (target.classList.contains('remove-button') || target.closest('.remove-button')) {
         return; 
@@ -785,7 +803,8 @@ useEffect(() => {
   {/* Header Visualisasi */}
   <div className="visualization-header" style={{ userSelect: 'none', cursor: 'inherit' }}>
     <h3>{viz.title || `Visualisasi ${viz.type}`}</h3>
-    <button
+    {!isViewMode && (
+      <button
       className="remove-button"
       onClick={(e) => {
         e.stopPropagation(); 
@@ -796,6 +815,7 @@ useEffect(() => {
     >
       ×
     </button>
+    )}
   </div>
 
   {/* Konten Visualisasi */}
@@ -840,7 +860,8 @@ useEffect(() => {
   // Tampilan Loading Awal
   if (isLoading && visualizations.length === 0) {
     return (
-      <main className="canvas-container" ref={containerRef}>
+      <main className="canvas-container" ref={containerRef} style={isViewMode ? 
+      { marginLeft: 0, width: '100vw' } : {}}>
         <div className="loading-indicator">
           <div className="spinner"></div>
           <p>Loading visualizations...</p>
@@ -869,7 +890,9 @@ useEffect(() => {
         {visualizations.length === 0 && !isLoading ? (
           <div className="empty-state">
             <p>Tidak ada visualisasi di canvas.</p>
-            <p>Untuk menambahkan, atur data dan pilih tipe visualisasi dari sidebar.</p>
+            {!isViewMode && (
+              <p>Untuk menambahkan, atur data dan pilih tipe visualisasi dari sidebar.</p>
+            )}
           </div>
         ) : (
           // Render semua visualisasi jika ada
