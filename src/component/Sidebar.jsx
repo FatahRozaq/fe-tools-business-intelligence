@@ -327,6 +327,7 @@ const handleVisualizationSelect = (visualization) => {
         setCanvases={setCanvases}  // Pass setCanvases to Header component
         setCurrentCanvasId={setCurrentCanvasId}
         totalCanvasCount={totalCanvasCount}
+        setTotalCanvasCount={setTotalCanvasCount}
       />
         
       <SidebarCanvas
