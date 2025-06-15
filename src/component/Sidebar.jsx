@@ -27,6 +27,7 @@ const Sidebar = ({userAccessLevel}) => {
   const visualizationTypeRef = useRef(visualizationType);
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
+  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
   const [currentCanvasId, setCurrentCanvasId] = useState(0);  
   const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
   // Add a state to track the selected visualization for configuration
