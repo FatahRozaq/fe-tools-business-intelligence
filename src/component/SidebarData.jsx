@@ -429,7 +429,7 @@ const SidebarData = ({
   };
 
   return (
-    <div id="sidebar-data" className="sidebar-2">
+    <div id="sidebar-data" className="sidebar-2" style={style}>
       <Toast ref={toast} />
       {isLoading && (
         <div className="loading-overlay">

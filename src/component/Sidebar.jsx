@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaPlus } from "react-icons/fa";
 import SidebarDiagram from "./SidebarDiagram/SidebarDiagram";
@@ -126,7 +127,7 @@ const Sidebar = () => {
   };
 
   const fetchColumns = (table) => {
-    if (columns[table]) return;
+    if (columns[table] || !canEdit) return;
 
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
@@ -139,6 +140,7 @@ const Sidebar = () => {
   };
 
   const handleQuerySubmit = (query) => {
+    if (!canEdit) return;
     setCanvasQuery(query);
     setVisualizationConfig({ ...DEFAULT_CONFIG });
     setAddNewVisualization(true);
@@ -157,6 +159,7 @@ const Sidebar = () => {
   }, [addNewVisualization, canvasQuery, visualizationType]);
 
   const handleVisualizationTypeChange = (type) => {
+    if (!canEdit) return;
     visualizationTypeRef.current = type;
     setVisualizationType(type);
 
@@ -205,6 +208,7 @@ const Sidebar = () => {
   };
 
   const handleConfigUpdate = (config) => {
+    if (!canEdit) return;
     setVisualizationConfig(config);
 
     if (selectedVisualization) {
@@ -357,6 +361,9 @@ const Sidebar = () => {
         canvases={canvases}
         setCanvases={setCanvases}
         setCurrentCanvasId={setCurrentCanvasId}
+        totalCanvasCount={totalCanvasCount}
+        userAccessLevel={userAccessLevel}
+        onMenuClick={handleMenuClick}
       />
 
       <SidebarCanvas
@@ -381,12 +388,14 @@ const Sidebar = () => {
         editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
       />
       <SidebarDiagram
+      style={{ display: activeSidebar === 'diagram' ? 'block' : 'none' }}
         onVisualizationTypeChange={handleVisualizationTypeChange}
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
         visualizationConfig={visualizationConfig}
       />
       <SidebarQuery
+      style={{ display: activeSidebar === 'query' ? 'block' : 'none' }}
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
       />
