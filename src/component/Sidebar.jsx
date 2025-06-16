@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import SidebarDiagram from "./SidebarDiagram/SidebarDiagram";
 import SidebarData from "./SidebarData";
@@ -13,7 +13,6 @@ import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants";
 import Header from "./Header";
 import SidebarCanvas from "./SidebarCanvas";
 import Visualiaze from "./Visualiaze";
-import { useRef } from 'react';
 
 const Sidebar = ({userAccessLevel}) => {
   const [tables, setTables] = useState([]);
@@ -27,8 +26,8 @@ const Sidebar = ({userAccessLevel}) => {
   const visualizationTypeRef = useRef(visualizationType);
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
+  const [currentCanvasId, setCurrentCanvasId] = useState(0);
   const [totalCanvasCount, setTotalCanvasCount] = useState(0);
-  const [currentCanvasId, setCurrentCanvasId] = useState(0);  
   const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
   // Add a state to track the selected visualization for configuration
   const [selectedVisualization, setSelectedVisualization] = useState(null);
@@ -36,58 +35,23 @@ const Sidebar = ({userAccessLevel}) => {
   const [addNewVisualization, setAddNewVisualization] = useState(false);
   const canEdit = userAccessLevel === 'admn' || userAccessLevel === 'edit';
 
-useEffect(() => {
-  if (!canEdit) return;
-  const sidebarData = document.getElementById("sidebar-data");
-  const sidebarDiagram = document.getElementById("sidebar-diagram");
-  const sidebarQuery = document.getElementById("sidebar-query");
-  const sidebarCanvas = document.getElementById("sidebar-canvas");
+  const [activeSidebar, setActiveSidebar] = useState('data');
 
-  if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas) {
-    sidebarData.style.display = "block";
-    sidebarDiagram.style.display = "none";
-    sidebarQuery.style.display = "none";
-    sidebarCanvas.style.display = "none";
-  }
-
-  const pilihDataBtn = document.getElementById("menu-data");
-  const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-  const pilihQueryBtn = document.getElementById("menu-query");
-  const pilihCanvasBtn = document.getElementById("menu-canvas");
-
-  if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn && pilihCanvasBtn) {
-    pilihDataBtn.addEventListener("click", () => {
-      sidebarData.style.display = "block";
-      sidebarDiagram.style.display = "none";
-      sidebarQuery.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihVisualisasiBtn.addEventListener("click", () => {
-      sidebarDiagram.style.display = "block";
-      sidebarQuery.style.display = "none";
-      sidebarData.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihQueryBtn.addEventListener("click", () => {
-      sidebarQuery.style.display = "block";
-      sidebarData.style.display = "none";
-      sidebarDiagram.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihCanvasBtn.addEventListener("click", () => {
-      sidebarCanvas.style.display = "block";
-      sidebarQuery.style.display = "none";
-      sidebarData.style.display = "none";
-      sidebarDiagram.style.display = "none";
-    });
-  }
-}, [canEdit]);
+const handleMenuClick = (menu) => {
+    if (canEdit) {
+      // 'visualisasi' dari ID tombol di-map ke 'diagram' untuk nama komponen
+      const menuMap = {
+        'data': 'data',
+        'visualisasi': 'diagram',
+        'query': 'query',
+        'canvas': 'canvas'
+      };
+      setActiveSidebar(menuMap[menu] || 'data');
+    }
+  };
 
   useEffect(() => {
-    if (canEdit) {
+    if (canEdit){
       axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
       .then((response) => {
@@ -327,10 +291,12 @@ const handleVisualizationSelect = (visualization) => {
         setCanvases={setCanvases}  // Pass setCanvases to Header component
         setCurrentCanvasId={setCurrentCanvasId}
         totalCanvasCount={totalCanvasCount}
-        setTotalCanvasCount={setTotalCanvasCount}
+        userAccessLevel={userAccessLevel}
+        onMenuClick={handleMenuClick}
       />
-        
+      
       <SidebarCanvas
+      style={{ display: activeSidebar === 'canvas' ? 'block' : 'none' }}
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         currentCanvasId={currentCanvasId}
@@ -338,22 +304,25 @@ const handleVisualizationSelect = (visualization) => {
         totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
         setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
         userAccessLevel={userAccessLevel}
-      />
+/>
 
 
       <SidebarData
+      style={{ display: activeSidebar === 'data' ? 'block' : 'none' }}
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
         setCanvasQuery={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
       />
       <SidebarDiagram
+      style={{ display: activeSidebar === 'diagram' ? 'block' : 'none' }}
         onVisualizationTypeChange={handleVisualizationTypeChange}
         onVisualizationConfigChange={handleConfigUpdate}
         selectedVisualization={selectedVisualization}
         visualizationConfig={visualizationConfig}
       />
       <SidebarQuery
+      style={{ display: activeSidebar === 'query' ? 'block' : 'none' }}
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange} />
       </>

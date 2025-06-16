@@ -5,7 +5,14 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import axios from "axios";
 import SubmitButton from "./Button/SubmitButton";
 
-const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanvasId, setCurrentCanvasId, totalCanvasCount, setTotalCanvasCount }) => {
+const SidebarCanvas = ({ currentCanvasIndex,
+  setCurrentCanvasIndex,
+  currentCanvasId,
+  setCurrentCanvasId,
+  totalCanvasCount,
+  setTotalCanvasCount,
+  style
+}) => {
   const [canvases, setCanvases] = useState([]);
   const [menuVisibleIndex, setMenuVisibleIndex] = useState(null);
   // const [totalCanvasCount, setTotalCanvasCount] = useState(0);
@@ -227,7 +234,7 @@ useEffect(() => {
   };
 
   return (
-    <div id="sidebar-canvas" className="sidebar-2" style={{ position: "relative", overflow: "visible" }}>
+    <div id="sidebar-canvas" className="sidebar-2" style={{ ...style, position: "relative", overflow: "visible" }}>
       <div className="sub-title">
         <CiViewList size={48} className="text-muted" />
         <span className="sub-text">Daftar Canvas</span>

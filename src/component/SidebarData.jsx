@@ -19,6 +19,7 @@ const SidebarData = ({
   setCanvasQuery,
   selectedTable,
   onVisualizationTypeChange,
+  style,
 }) => {
   const toast = useRef(null);
 
@@ -473,7 +474,7 @@ const SidebarData = ({
   };
 
   return (
-    <div id="sidebar-data" className="sidebar-2">
+    <div id="sidebar-data" className="sidebar-2" style={style}>
       <Toast ref={toast} />
 
       <div className="sub-title">

@@ -3,7 +3,10 @@ import { FaPaperPlane } from "react-icons/fa";
 import { TbSql } from "react-icons/tb";
 import SubmitButton from "./Button/SubmitButton";
 
-const SidebarQuery = ({ onQuerySubmit, onVisualizationTypeChange }) => {
+const SidebarQuery = ({ onQuerySubmit,
+  onVisualizationTypeChange,
+  style,
+}) => {
   const [query, setQuery] = useState("");
 
   const handleChange = (e) => {
@@ -16,7 +19,7 @@ const SidebarQuery = ({ onQuerySubmit, onVisualizationTypeChange }) => {
   };
 
   return (
-    <div id="sidebar-query" className="sidebar-2">
+    <div id="sidebar-query" className="sidebar-2" style={style}>
       <div className="sub-title">
         <TbSql size={48} className="text-muted" />
         <span className="sub-text">Query SQL</span>

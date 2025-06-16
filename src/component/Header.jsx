@@ -14,6 +14,7 @@ const Header = ({ currentCanvasIndex,
   currentCanvasId,
   setCurrentCanvasId,
   onLogout,
+  onMenuClick,
   userAccessLevel,
   totalCanvasCount, 
   setTotalCanvasCount
@@ -272,6 +273,8 @@ const goToPreviousCanvas = () => {
   }
 };
 
+const canNavigate = userAccessLevel === 'admn' || userAccessLevel === 'edit';
+
   return (
     <header className="header fixed-top d-flex align-items-center justify-content-between p-3 bg-white shadow">
       <div className="d-flex align-items-center">
@@ -289,7 +292,9 @@ const goToPreviousCanvas = () => {
           >
             &#8592;
           </span>
-          <span id="menu-canvas">
+          <span id="menu-canvas"
+          onClick={() => onMenuClick('canvas')}
+          >
             Kanvas {currentCanvasIndex + 1} dari {totalCanvasCount}
           </span>
           <span
@@ -304,17 +309,23 @@ const goToPreviousCanvas = () => {
           {(userAccessLevel === 'admn' || userAccessLevel === 'edit') && (
               <>
                 <span className="mx-2">|</span>
-                <span id="menu-data" className="cursor-pointer d-flex align-items-center">
+                <span id="menu-data" className="cursor-pointer d-flex align-items-center"
+                onClick={() => onMenuClick('data')}
+                >
                   <AiOutlineDatabase className="me-1" />
                   Pilih Data
                 </span>
                 <span className="mx-2">|</span>
-                <span id="menu-visualisasi" className="cursor-pointer d-flex align-items-center">
+                <span id="menu-visualisasi" className="cursor-pointer d-flex align-items-center"
+                onClick={() => onMenuClick('visualisasi')}
+                >
                   <AiOutlinePieChart className="me-1" />
                   Pilih Visualisasi
                 </span>
                 <span className="mx-2">|</span>
-                <span id="menu-query" className="cursor-pointer d-flex align-items-center">
+                <span id="menu-query" className="cursor-pointer d-flex align-items-center"
+                onClick={() => onMenuClick('query')}
+                >
                   <TbSql className="me-1 mt-1" />
                   Query
                 </span>
