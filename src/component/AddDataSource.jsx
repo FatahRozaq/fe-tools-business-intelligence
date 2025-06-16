@@ -2,20 +2,21 @@ import React, { useState } from "react";
 import axios from "axios";
 import config from "../config";
 import { GrDatabase } from "react-icons/gr";
-import { FaPlus } from "react-icons/fa";
 import { FaFloppyDisk } from "react-icons/fa6";
+import { MdCancel } from "react-icons/md";
 
-const AddDatasource = () => {
+const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const [formData, setFormData] = useState({
-    name: "Database Baru",
-    type: "",
+    connection_name: "",
     host: "",
     port: "",
-    database_name: "",
+    database: "",
     username: "",
     password: "",
   });
   const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,24 +25,32 @@ const AddDatasource = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setMessage("");
+    setErrors({});
+    setIsLoading(true);
 
     axios
-      .post(
-        `${config.API_BASE_URL}/api/kelola-dashboard/fetch-database`,
-        formData
-      )
+      .post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/run`, formData)
       .then((response) => {
-        if (response.data.success) {
-          setMessage("Database telah ditambahkan");
+        setIsLoading(false);
+        if (response.data.status === 'success') {
+          setMessage("Datasource berhasil ditambahkan dan data sedang diproses. Halaman akan dimuat ulang.");
           setTimeout(() => {
-            window.location.reload(); // refresh halaman setelah submit sukses
-          }, 1000); // kasih delay sedikit biar pesan sempat muncul
+            onSaveSuccess();
+          }, 2000);
         } else {
-          setMessage("Gagal menyimpan koneksi database");
+          setMessage(response.data.message || "Gagal menyimpan koneksi database.");
         }
       })
       .catch((error) => {
-        setMessage("Terjadi kesalahan: " + error.message);
+        setIsLoading(false);
+        if (error.response && error.response.status === 422) {
+          setMessage("Data yang dimasukkan tidak valid. Silakan periksa kembali.");
+          setErrors(error.response.data.errors);
+        } else if (error.response && error.response.data.message) {
+            setMessage(error.response.data.message);
+        } else {
+          setMessage("Terjadi kesalahan: " + error.message);
+        }
       });
   };
 
@@ -49,40 +58,25 @@ const AddDatasource = () => {
     <div className="sidebar-2" id="tambah-datasource">
       <div className="sub-title">
         <GrDatabase size={48} className="text-muted" />
-        <span className="sub-text">Datasources</span>
+        <span className="sub-text">Tambah Datasource</span>
       </div>
       <hr className="full-line" />
-      {message && <p className="message">{message}</p>}
+      {message && <div className={`alert ${errors.length > 0 ? 'alert-danger' : 'alert-info'}`}>{message}</div>}
       <form onSubmit={handleSubmit}>
-        {/* <div className="form-group">
+        <div className="form-group">
           <label>
-            Nama <span className="text-danger">*</span>
+            Nama Koneksi <span className="text-danger">*</span>
           </label>
           <input
             type="text"
-            name="name"
-            value={formData.name}
+            name="connection_name"
+            placeholder="e.g., crm_production"
+            value={formData.connection_name}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.connection_name ? 'is-invalid' : ''}`}
           />
-        </div> */}
-
-        <div className="form-group">
-          <label>
-            Tipe <span className="text-danger">*</span>
-          </label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            required
-            className="form-control"
-          >
-            <option value="">-- Pilih Tipe --</option>
-            <option value="pgsql">PostgreSQL</option>
-            <option value="mysql">MySQL</option>
-          </select>
+          {errors.connection_name && <div className="invalid-feedback">{errors.connection_name[0]}</div>}
         </div>
 
         <div className="form-group">
@@ -95,8 +89,9 @@ const AddDatasource = () => {
             value={formData.host}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.host ? 'is-invalid' : ''}`}
           />
+           {errors.host && <div className="invalid-feedback">{errors.host[0]}</div>}
         </div>
 
         <div className="form-group">
@@ -109,8 +104,9 @@ const AddDatasource = () => {
             value={formData.port}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.port ? 'is-invalid' : ''}`}
           />
+           {errors.port && <div className="invalid-feedback">{errors.port[0]}</div>}
         </div>
 
         <div className="form-group">
@@ -119,12 +115,13 @@ const AddDatasource = () => {
           </label>
           <input
             type="text"
-            name="database_name"
-            value={formData.database_name}
+            name="database"
+            value={formData.database}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.database ? 'is-invalid' : ''}`}
           />
+           {errors.database && <div className="invalid-feedback">{errors.database[0]}</div>}
         </div>
 
         <div className="form-group">
@@ -137,8 +134,9 @@ const AddDatasource = () => {
             value={formData.username}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.username ? 'is-invalid' : ''}`}
           />
+           {errors.username && <div className="invalid-feedback">{errors.username[0]}</div>}
         </div>
 
         <div className="form-group">
@@ -151,8 +149,9 @@ const AddDatasource = () => {
             value={formData.password}
             onChange={handleChange}
             required
-            className="form-control"
+            className={`form-control ${errors.password ? 'is-invalid' : ''}`}
           />
+           {errors.password && <div className="invalid-feedback">{errors.password[0]}</div>}
         </div>
 
         <button
@@ -164,9 +163,26 @@ const AddDatasource = () => {
             borderRadius: "0.375rem",
             height: 40
           }}
+          disabled={isLoading}
         >
-          <FaFloppyDisk className="me-2" />
-          Simpan
+          {isLoading ? (
+            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          ) : (
+            <>
+              <FaFloppyDisk className="me-2" />
+              Simpan & Proses
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2 w-100 mt-2"
+          style={{ height: 40 }}
+          disabled={isLoading}
+        >
+          <MdCancel className="me-2" />
+          Batal
         </button>
       </form>
     </div>

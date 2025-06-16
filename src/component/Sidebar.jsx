@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { FaPlus } from "react-icons/fa";
 import SidebarDiagram from "./SidebarDiagram/SidebarDiagram";
 import SidebarData from "./SidebarData";
 import config from "../config";
@@ -7,16 +8,14 @@ import SidebarDatasource from "./SidebarDatasource";
 import AddDatasource from "./AddDataSource";
 import Canvas from "./Canvas";
 import SidebarQuery from "./SidebarQuery";
-import { AiOutlineDatabase } from "react-icons/ai";
 import { GrDatabase } from "react-icons/gr";
-import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants"; 
+import { DEFAULT_CONFIG } from "./SidebarDiagram/ConfigConstants";
 import Header from "./Header";
 import SidebarCanvas from "./SidebarCanvas";
-import Visualiaze from "./Visualiaze";
-import { useRef } from 'react';
 
-const Sidebar = ({}) => {
+const Sidebar = () => {
   const [tables, setTables] = useState([]);
+  const [groupedTables, setGroupedTables] = useState({});
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
@@ -29,77 +28,102 @@ const Sidebar = ({}) => {
   const [canvases, setCanvases] = useState([]);
   const [currentCanvasId, setCurrentCanvasId] = useState(0);
 
-  
+  const [visualizationConfig, setVisualizationConfig] = useState({
+    ...DEFAULT_CONFIG,
+  });
 
-  const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
-
-  // Add a state to track the selected visualization for configuration
   const [selectedVisualization, setSelectedVisualization] = useState(null);
-
-  // Add a new state to track whether we should add a new visualization
   const [addNewVisualization, setAddNewVisualization] = useState(false);
 
-useEffect(() => {
-  const sidebarData = document.getElementById("sidebar-data");
-  const sidebarDiagram = document.getElementById("sidebar-diagram");
-  const sidebarQuery = document.getElementById("sidebar-query");
-  const sidebarCanvas = document.getElementById("sidebar-canvas");
+  const [newVisualizationPayload, setNewVisualizationPayload] = useState(null);
 
-  if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas) {
-    sidebarData.style.display = "block";
-    sidebarDiagram.style.display = "none";
-    sidebarQuery.style.display = "none";
-    sidebarCanvas.style.display = "none";
-  }
-
-  const pilihDataBtn = document.getElementById("menu-data");
-  const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-  const pilihQueryBtn = document.getElementById("menu-query");
-  const pilihCanvasBtn = document.getElementById("menu-canvas");
-
-  if (pilihDataBtn && pilihVisualisasiBtn && pilihQueryBtn && pilihCanvasBtn) {
-    pilihDataBtn.addEventListener("click", () => {
-      sidebarData.style.display = "block";
-      sidebarDiagram.style.display = "none";
-      sidebarQuery.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihVisualisasiBtn.addEventListener("click", () => {
-      sidebarDiagram.style.display = "block";
-      sidebarQuery.style.display = "none";
-      sidebarData.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihQueryBtn.addEventListener("click", () => {
-      sidebarQuery.style.display = "block";
-      sidebarData.style.display = "none";
-      sidebarDiagram.style.display = "none";
-      sidebarCanvas.style.display = "none";
-    });
-
-    pilihCanvasBtn.addEventListener("click", () => {
-      sidebarCanvas.style.display = "block";
-      sidebarQuery.style.display = "none";
-      sidebarData.style.display = "none";
-      sidebarDiagram.style.display = "none";
-    });
-  }
-}, []);
-
-  useEffect(() => {
+  const fetchAllTables = () => {
+    setLoading(true);
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-table/1`)
       .then((response) => {
-        setTables(response.data.data || []);
+        if (response.data.success && response.data.data) {
+          setTables(response.data.data.tables || []);
+          setGroupedTables(response.data.data.grouped_tables || {});
+        } else {
+          setTables([]);
+          setGroupedTables({});
+        }
         setLoading(false);
       })
       .catch((error) => {
         console.error("Gagal mengambil data tabel:", error);
         setLoading(false);
+        setTables([]);
+        setGroupedTables({});
       });
+  };
+
+  useEffect(() => {
+    const sidebarData = document.getElementById("sidebar-data");
+    const sidebarDiagram = document.getElementById("sidebar-diagram");
+    const sidebarQuery = document.getElementById("sidebar-query");
+    const sidebarCanvas = document.getElementById("sidebar-canvas");
+
+    const menuData = document.getElementById("menu-data");
+    const menuVisualisasi = document.getElementById("menu-visualisasi");
+
+    if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas) {
+      if (selectedVisualization) {
+        // Jika ada visualisasi yg dipilih, tunjukkan sidebar diagram/style
+        sidebarData.style.display = "none";
+        sidebarDiagram.style.display = "block";
+        menuData.classList.remove('active');
+        menuVisualisasi.classList.add('active');
+      } else {
+        // Jika tidak, tunjukkan sidebar data untuk buat baru
+        sidebarData.style.display = "block";
+        sidebarDiagram.style.display = "none";
+        menuData.classList.add('active');
+        menuVisualisasi.classList.remove('active');
+      }
+      sidebarQuery.style.display = "none";
+      sidebarCanvas.style.display = "none";
+    }
+
+    const pilihDataBtn = document.getElementById("menu-data");
+    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+    const pilihQueryBtn = document.getElementById("menu-query");
+    const pilihCanvasBtn = document.getElementById("menu-canvas");
+    const tambahDatasourceBtn = document.getElementById("menu-tambah-datasource");
+
+    const menuClickHandler = (showSidebar) => {
+      sidebarData.style.display = showSidebar === "data" ? "block" : "none";
+      sidebarDiagram.style.display = showSidebar === "diagram" ? "block" : "none";
+      sidebarQuery.style.display = showSidebar === "query" ? "block" : "none";
+      sidebarCanvas.style.display = showSidebar === "canvas" ? "block" : "none";
+    };
+
+    if (pilihDataBtn) pilihDataBtn.addEventListener("click", () => menuClickHandler("data"));
+    if (pilihVisualisasiBtn) pilihVisualisasiBtn.addEventListener("click", () => menuClickHandler("diagram"));
+    if (pilihQueryBtn) pilihQueryBtn.addEventListener("click", () => menuClickHandler("query"));
+    if (pilihCanvasBtn) pilihCanvasBtn.addEventListener("click", () => menuClickHandler("canvas"));
+    if (tambahDatasourceBtn) tambahDatasourceBtn.addEventListener("click", () => setShowAddDatasource(true));
+
+  }, [selectedVisualization]);
+
+  useEffect(() => {
+    fetchAllTables();
   }, []);
+
+  const handleBuildVisualization = (payload, query, data) => {
+    setNewVisualizationPayload(payload); // Simpan payload
+    setCanvasData(data);
+    setCanvasQuery(query);
+    setVisualizationConfig({ ...DEFAULT_CONFIG });
+    setAddNewVisualization(true);
+    setSelectedVisualization(null); // Deselect apapun yang sedang dipilih
+  };
+
+  const handleSaveSuccess = () => {
+    setShowAddDatasource(false);
+    fetchAllTables();
+  };
 
   const fetchColumns = (table) => {
     if (columns[table]) return;
@@ -116,18 +140,18 @@ useEffect(() => {
 
   const handleQuerySubmit = (query) => {
     setCanvasQuery(query);
-    setVisualizationConfig({ ...DEFAULT_CONFIG }); 
+    setVisualizationConfig({ ...DEFAULT_CONFIG });
     setAddNewVisualization(true);
     setSelectedVisualization(null);
   };
 
-  // Reset the visualization type and query after a new visualization is added
   useEffect(() => {
     if (addNewVisualization && canvasQuery && visualizationType) {
       setTimeout(() => {
         setAddNewVisualization(false);
         setCanvasQuery("");
         setVisualizationType("");
+        setNewVisualizationPayload(null); // Reset payload setelah digunakan
       }, 500);
     }
   }, [addNewVisualization, canvasQuery, visualizationType]);
@@ -135,83 +159,69 @@ useEffect(() => {
   const handleVisualizationTypeChange = (type) => {
     visualizationTypeRef.current = type;
     setVisualizationType(type);
-    
-    // Only update if there's a selected visualization
-    if (selectedVisualization && canvasQuery) {
-        // Update the selected visualization's type
-        updateSelectedVisualizationType(type);
-    } else if (canvasQuery && !selectedVisualization) {
-        // This is for creating a new visualization when none is selected
-        setAddNewVisualization(true);
-    }
-};
 
-// New function to update only the selected visualization
-const updateSelectedVisualizationType = (newType) => {
+    if (selectedVisualization && canvasQuery) {
+      updateSelectedVisualizationType(type);
+    } else if (canvasQuery && !selectedVisualization) {
+      setAddNewVisualization(true);
+    }
+  };
+
+  const updateSelectedVisualizationType = (newType) => {
     if (!selectedVisualization) return;
 
-    // Update the canvases state to modify only the selected visualization
-    setCanvases(prevCanvases => 
-        prevCanvases.map(canvas => 
-            canvas.id === currentCanvasId 
-                ? {
-                    ...canvas,
-                    visualizations: canvas.visualizations.map(viz => 
-                        viz.id === selectedVisualization.id 
-                            ? { ...viz, type: newType }
-                            : viz
-                    )
-                }
-                : canvas
-        )
+    setCanvases((prevCanvases) =>
+      prevCanvases.map((canvas) =>
+        canvas.id === currentCanvasId
+          ? {
+              ...canvas,
+              visualizations: canvas.visualizations.map((viz) =>
+                viz.id === selectedVisualization.id ? { ...viz, type: newType } : viz
+              ),
+            }
+          : canvas
+      )
     );
 
-    // Update the selectedVisualization state to reflect the change
-    setSelectedVisualization(prev => ({
-        ...prev,
-        type: newType
+    setSelectedVisualization((prev) => ({
+      ...prev,
+      type: newType,
     }));
-};
+  };
 
-// Sync ref with state
-useEffect(() => {
+  useEffect(() => {
     visualizationTypeRef.current = visualizationType;
-    console.log(`Visualization type updated: ${visualizationType}`);
-}, [visualizationType]);
+  }, [visualizationType]);
 
-// Handle visualization selection for configuration
-const handleVisualizationSelect = (visualization) => {
+  const handleVisualizationSelect = (visualization) => {
     setSelectedVisualization(visualization);
     if (visualization) {
-        setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG });
-        // Set the visualization type to match the selected visualization
-        setVisualizationType(visualization.type || "");
+      setVisualizationConfig(visualization.config || { ...DEFAULT_CONFIG });
+      setVisualizationType(visualization.type || "");
     } else {
-        setVisualizationConfig({ ...DEFAULT_CONFIG });
-        setVisualizationType("");
+      setVisualizationConfig({ ...DEFAULT_CONFIG });
+      setVisualizationType("");
     }
-};
+  };
 
-  // Handle updating configuration for the selected visualization
   const handleConfigUpdate = (config) => {
     setVisualizationConfig(config);
 
-    // If a visualization is selected, update its configuration
     if (selectedVisualization) {
-      setSelectedVisualization(prev => ({
+      setSelectedVisualization((prev) => ({
         ...prev,
-        config: { ...config }
+        config: { ...config },
       }));
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
       .then((response) => {
         if (response.data.success) {
           const activeCanvases = response.data.canvases;
-          setCanvases(activeCanvases); // Update canvases state
+          setCanvases(activeCanvases);
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
@@ -221,119 +231,154 @@ const handleVisualizationSelect = (visualization) => {
       });
   }, []);
 
-  return (
-    <>
-      {loading ? (
-        <div className="alert alert-info">Loading...</div>
-      ) : showAddDatasource ? (
-        <AddDatasource />
-      ) : tables.length === 0 ? (
-        <SidebarDatasource
-          onTambahDatasource={() => setShowAddDatasource(true)}
+  const renderSidebarContent = () => {
+    if (loading) {
+      return <div className="alert alert-info">Loading...</div>;
+    }
+    if (showAddDatasource) {
+      return (
+        <AddDatasource
+          onCancel={() => setShowAddDatasource(false)}
+          onSaveSuccess={handleSaveSuccess}
         />
-      ) : (
-        <div id="sidebar" className="sidebar">
-          <div className="sub-title">
+      );
+    }
+    if (Object.keys(groupedTables).length === 0) {
+      return <SidebarDatasource onTambahDatasource={() => setShowAddDatasource(true)} />;
+    }
+    return (
+      <div id="sidebar" className="sidebar">
+        <div className="sub-title d-flex justify-content-between align-items-center">
+          <div className="d-flex align-items-center">
             <GrDatabase size={48} className="text-muted" />
             <span className="sub-text">Datasources</span>
           </div>
-          <hr className="full-line" />
-
-          <div className="accordion" id="tableAccordion">
-            {tables.map((table, index) => (
-              <div className="accordion-item" key={index}>
-                <h2 className="accordion-header" id={`heading-${index}`}>
-                  <button
-                    className="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target={`#collapse-${index}`}
-                    aria-expanded="false"
-                    aria-controls={`collapse-${index}`}
-                    onClick={() => {
-                      setSelectedTable(table);
-                      fetchColumns(table);
-                    }}
-                  >
-                    {table}
-                  </button>
-                </h2>
-                <div
-                  id={`collapse-${index}`}
-                  className="accordion-collapse collapse"
-                  aria-labelledby={`heading-${index}`}
-                  data-bs-parent="#tableAccordion"
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => setShowAddDatasource(true)}
+            title="Tambah Datasource Baru"
+          >
+            <FaPlus />
+          </button>
+        </div>
+        <hr className="full-line" />
+        <div className="accordion" id="groupAccordion">
+          {Object.entries(groupedTables).map(([prefix, groupData], groupIndex) => (
+            <div className="accordion-item" key={prefix}>
+              <h2 className="accordion-header" id={`group-heading-${groupIndex}`}>
+                <button
+                  className="accordion-button collapsed"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target={`#group-collapse-${groupIndex}`}
+                  aria-expanded="false"
+                  aria-controls={`group-collapse-${groupIndex}`}
                 >
-                  <div className="column-container">
-                    {columns[table] ? (
-                      columns[table].map((col, colIndex) => (
+                  {prefix} ({groupData.table_count})
+                </button>
+              </h2>
+              <div
+                id={`group-collapse-${groupIndex}`}
+                className="accordion-collapse collapse"
+                aria-labelledby={`group-heading-${groupIndex}`}
+                data-bs-parent="#groupAccordion"
+              >
+                <div className="accordion-body p-2">
+                  <div className="accordion" id={`table-accordion-${groupIndex}`}>
+                    {groupData.tables.map((table, tableIndex) => (
+                      <div className="accordion-item" key={table.full_name}>
+                        <h2 className="accordion-header" id={`table-heading-${groupIndex}-${tableIndex}`}>
+                          <button
+                            className="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#table-collapse-${groupIndex}-${tableIndex}`}
+                            aria-expanded="false"
+                            aria-controls={`table-collapse-${groupIndex}-${tableIndex}`}
+                            onClick={() => {
+                              setSelectedTable(table.full_name);
+                              fetchColumns(table.full_name);
+                            }}
+                          >
+                            {table.table_name}
+                          </button>
+                        </h2>
                         <div
-                          key={colIndex}
-                          className="column-card"
-                          draggable={true}
-                          onDragStart={(event) => {
-                            const columnData = {
-                              columnName: col.name,
-                              tableName: table,
-                            };
-                            event.dataTransfer.setData(
-                              "text/plain",
-                              JSON.stringify(columnData)
-                            );
-                          }}
+                          id={`table-collapse-${groupIndex}-${tableIndex}`}
+                          className="accordion-collapse collapse"
+                          aria-labelledby={`table-heading-${groupIndex}-${tableIndex}`}
+                          data-bs-parent={`#table-accordion-${groupIndex}`}
                         >
-                          <span className="column-icons">
-                            {col.type.includes("int") ||
-                              col.type.includes("numeric") ||
-                              col.type.includes("float") ||
-                              col.type.includes("double") ||
-                              col.type.includes("decimal")
-                              ? "123"
-                              : col.type.includes("char") ||
-                                col.type.includes("text") ||
-                                col.type.includes("string")
-                                ? "ABC"
-                                : col.type.includes("date") ||
-                                  col.type.includes("time") ||
-                                  col.type.includes("timestamp")
-                                  ? "DATE"
-                                  : "🔗"}
-                          </span>
-                          {col.name}
+                          <div className="column-container">
+                            {columns[table.full_name] ? (
+                              columns[table.full_name].map((col, colIndex) => (
+                                <div
+                                  key={colIndex}
+                                  className="column-card"
+                                  draggable={true}
+                                  onDragStart={(event) => {
+                                    const columnData = {
+                                      columnName: col.name,
+                                      tableName: table.full_name,
+                                    };
+                                    event.dataTransfer.setData("text/plain", JSON.stringify(columnData));
+                                  }}
+                                >
+                                  <span className="column-icons">
+                                    {col.is_numeric_type ? "123" : col.is_text_type ? "ABC" : col.is_date_type ? "DATE" : "🔗"}
+                                  </span>
+                                  {col.name}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-muted p-2">Loading...</p>
+                            )}
+                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-muted">Loading...</p>
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {renderSidebarContent()}
 
       <Header
         currentCanvasIndex={currentCanvasIndex}
-        setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
-         canvases={canvases}  // Pass canvases as a prop
-        setCanvases={setCanvases}  // Pass setCanvases to Header component
+        setCurrentCanvasIndex={setCurrentCanvasIndex}
+        canvases={canvases}
+        setCanvases={setCanvases}
         setCurrentCanvasId={setCurrentCanvasId}
       />
-      
+
       <SidebarCanvas
-  currentCanvasIndex={currentCanvasIndex}
-  setCurrentCanvasIndex={setCurrentCanvasIndex}
-  currentCanvasId={currentCanvasId}
-  setCurrentCanvasId={setCurrentCanvasId}
-/>
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex}
+        currentCanvasId={currentCanvasId}
+        setCurrentCanvasId={setCurrentCanvasId}
+      />
 
-
-      <SidebarData
+      {/* <SidebarData
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
         setCanvasQuery={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
+      /> */}
+
+      <SidebarData
+        setCanvasData={setCanvasData}
+        selectedTable={selectedTable}
+        onBuildVisualization={handleBuildVisualization} // Prop baru
+        onVisualizationTypeChange={handleVisualizationTypeChange}
+        editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
       />
       <SidebarDiagram
         onVisualizationTypeChange={handleVisualizationTypeChange}
@@ -343,8 +388,9 @@ const handleVisualizationSelect = (visualization) => {
       />
       <SidebarQuery
         onQuerySubmit={handleQuerySubmit}
-        onVisualizationTypeChange={handleVisualizationTypeChange} />
-        
+        onVisualizationTypeChange={handleVisualizationTypeChange}
+      />
+
       <Canvas
         data={canvasData}
         query={addNewVisualization ? canvasQuery : ""}
@@ -354,15 +400,26 @@ const handleVisualizationSelect = (visualization) => {
         selectedVisualization={selectedVisualization}
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
-        canvases={canvases}  // Pass canvases to Canvas
-        setCanvases={setCanvases}  // Pass setCanvases to Canvas
+        canvases={canvases}
+        setCanvases={setCanvases}
         currentCanvasId={currentCanvasId}
         setCurrentCanvasId={setCurrentCanvasId}
         onUpdateVisualizationType={updateSelectedVisualizationType}
+        newVisualizationPayload={newVisualizationPayload}
       />
-      
+
+      <style jsx>{`
+        .sidebar {
+          max-height: 100vh;
+          overflow-y: auto;
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+        .sidebar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, and Opera */
+        }
+      `}</style>
     </>
-    
   );
 };
 

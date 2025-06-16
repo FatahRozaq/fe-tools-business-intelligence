@@ -18,7 +18,8 @@ const Canvas = ({
   canvases,
   setCanvases,
   currentCanvasId,
-  setCurrentCanvasId
+  setCurrentCanvasId,
+  newVisualizationPayload,
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
@@ -86,6 +87,16 @@ const Canvas = ({
     const vizQuery = apiVisualization.query;
     const vizDatasource = apiVisualization.id_datasource;
 
+    let builderPayload = apiVisualization.builder_payload;
+    if (typeof builderPayload === 'string') {
+        try {
+            builderPayload = JSON.parse(builderPayload);
+        } catch (e) {
+            console.error("Failed to parse builder_payload:", e);
+            builderPayload = null;
+        }
+    }
+
     return {
       id: apiVisualization.id_visualization.toString(),
       id_datasource: vizDatasource,
@@ -98,6 +109,7 @@ const Canvas = ({
       y: apiVisualization.position_y || 0,
       width: apiVisualization.width || 800,
       height: apiVisualization.height || 400,
+      builderPayload: builderPayload,
       requestPayload: { // Menyimpan payload request yang stabil untuk di pass ke Visualisasi
         id_datasource: vizDatasource,
         query: vizQuery,
@@ -125,7 +137,7 @@ useEffect(() => {
           setCurrentCanvasIndex(0); // Karena ini canvas pertama
           setCurrentCanvasId(canvasId);
           localStorage.setItem("currentCanvasIndex", "0");
-          localStorage.setItem("currentCanvasId", canvasId.toString());
+          localStorage.setItem("currentCanvasId", canvasId);
         } else {
           console.error("Gagal mendapatkan canvas pertama:", data.message);
         }
@@ -215,6 +227,7 @@ useEffect(() => {
   height: Math.round(visualization.height) || 400, // Default height jika tidak ada
   position_x: Math.round(visualization.x) || 0, // Default x jika tidak ada
   position_y: Math.round(visualization.y) || 0, // Default y jika tidak ada
+  builder_payload: visualization.builderPayload || null, 
 };
 
 
@@ -341,11 +354,10 @@ useEffect(() => {
   // useEffect untuk menambahkan visualisasi baru ketika props berubah
   useEffect(() => {
   // Hanya jalan jika ada query, tipe visualisasi, dan data datasource
-  if (query && visualizationType && data) {
-    // Cek apakah visualisasi dengan query dan tipe yang sama sudah ada
-    const existingVisualization = visualizations.find(
-      v => v.query === query && v.type === visualizationType
-    );
+  if (query && visualizationType && data && newVisualizationPayload) { // Cek payload baru
+      const existingVisualization = visualizations.find(
+        v => v.query === query && v.type === visualizationType
+      );
 
     // Jika belum ada, buat visualisasi baru
     if (!existingVisualization) {
@@ -374,6 +386,7 @@ useEffect(() => {
         y: 20, // Posisi default Y
         width: 600, // Lebar default
         height: 400, // Tinggi default
+        builderPayload: newVisualizationPayload,
         requestPayload: { // Buat requestPayload yang stabil
            id_canvas: currentCanvasId,
            id_datasource: datasourceId,
@@ -397,7 +410,7 @@ useEffect(() => {
     }
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI]); // Tambahkan data.id_datasource dan saveVisualizationToAPI
+}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI, newVisualizationPayload]); // Tambahkan data.id_datasource dan saveVisualizationToAPI
 
   // useEffect untuk mengupdate config visualisasi yang dipilih
   useEffect(() => {
