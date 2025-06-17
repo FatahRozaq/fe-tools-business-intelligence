@@ -1,0 +1,356 @@
+/**
+* Template Name: NiceAdmin
+* Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
+* Updated: Apr 20 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+*/
+
+/*--------------------------------------------------------------
+# General
+--------------------------------------------------------------*/
+:root {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: "Open Sans", sans-serif;
+    background: #f6f9ff;
+    color: #444444;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  
+  a {
+    color: #4154f1;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    color: #717ff5;
+    text-decoration: none;
+  }
+  
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Nunito", sans-serif;
+  }
+  
+  .btn {
+    height: 30px;
+    width: fit-content;
+    font-size: 12px;
+  }
+  
+  /*--------------------------------------------------------------
+  # Header
+  --------------------------------------------------------------*/
+  
+  .header {
+    transition: all 0.5s;
+    z-index: 999;
+    height: 80px;
+    /* box-shadow: 0px 2px 20px rgba(1, 41, 112, 0.1); */
+    background-color: #fff;
+    padding-left: 10px;
+    border-bottom: solid #BFBFBF;
+  }
+
+  .logo img {
+    width: 100px;
+    height: auto;
+  }
+  
+  /*--------------------------------------------------------------
+  # Sidebar
+  --------------------------------------------------------------*/
+.main-container {
+    display: flex; 
+    margin-top: 80px; 
+    overflow: hidden;
+    height: 100%;
+}
+
+.sidebar {
+    width: 250px;
+    min-width: 250px;
+    transition: all 0.3s;
+    padding: 20px;
+    overflow: hidden; /* Hapus overflow dari sidebar */
+    scrollbar-width: thin;
+    scrollbar-color: #aab7cf transparent;
+    /* box-shadow: 0px 0px 20px rgba(1, 41, 112, 0.1); */
+    background-color: #fff;
+    border-right: solid #BFBFBF;
+    height: 100%;
+}
+
+#sidebar {
+  z-index: 10000;
+  height: 100vh;
+}
+
+#tableAccordion {
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+
+/* Chrome, Edge, Safari */
+#tableAccordion::-webkit-scrollbar {
+    display: none;
+}
+
+.accordion-item {
+    border: none !important;
+    box-shadow: none !important; /* kalau ada shadow juga */
+}
+
+.accordion-button {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+}
+
+.accordion-button:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+
+
+.sidebar-2 {
+    width: 350px;
+    transition: all 0.3s;
+    padding: 10px;
+    overflow: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #aab7cf transparent;
+    /* box-shadow: 0px 0px 20px rgba(1, 41, 112, 0.1); */
+    background-color: #fff;
+    border-right: solid #BFBFBF;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-row {
+    display: flex;
+    gap: 5px;
+}
+
+.mini-card {
+    width: 50px;
+    height: 40px;
+    background-color: #BFBFBF;
+}
+
+.column-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.column-card {
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: grab;
+    width: 100%;
+}
+
+.column-card:active {
+    cursor: grabbing;
+}
+
+.list-group-item {
+    padding: 5px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.full-line {
+    margin-left: -20px; 
+    margin-right: -20px; 
+}
+
+.sub-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sub-text {
+    font-size: 16px;
+}
+
+.accordion {
+    border: none;
+    font-size: 12px;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    outline: none;
+}
+.accordion-button:not(.collapsed) {
+    background-color: #f8f9fa;
+    color: black;
+}
+
+.accordion-item {
+    border: none;
+    font-size: 12px
+}
+
+.accordion-header {
+    border: none;
+}
+
+.accordion-button {
+    border: none;
+    box-shadow: none; /* Menghilangkan efek shadow */
+}
+
+.sidebar {
+    padding: 10px; 
+    z-index: -100;
+    font-size: 12px;
+}
+
+.column-icons{
+    color: green; 
+    font-weight: bold;
+}
+
+
+
+/*--------------------------------------------------------------
+  # Main
+  --------------------------------------------------------------*/
+.canvas-container {
+    width: 100%;
+    /* height: 100vh;  */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    overflow: auto; 
+    position: relative;
+}
+
+/* KANVAS */
+.canvas {
+    width: 900px;
+    height: 600px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    position: relative;
+    transform-origin: center;
+    display: block; /* Pastikan tidak terkena flex box default */
+}
+
+/*--------------------------------------------------------------
+  # Footer
+  --------------------------------------------------------------*/
+.footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #f8f9fa;
+    border-top: 2px solid #ddd;
+    padding: 15px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 100000000;
+}
+
+.footer-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+  
+.footer-bar-close {
+    cursor: pointer;
+    font-size: 18px;
+    background: none;
+    border: none;
+}
+
+.filter-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+  
+.filter-input {
+    flex: 1;
+    max-width: 150px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+  
+.footer-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.left-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.logic-dropdown {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.right-buttons {
+    display: flex;
+    gap: 10px;
+}
+/* .filter-row {
+display: flex;
+gap: 10px;
+justify-content: center;
+margin-bottom: 10px;
+}
+select, input {
+padding: 5px;
+border: 1px solid #ccc;
+border-radius: 5px;
+} */
