@@ -753,28 +753,40 @@ const transformGroupedData = (rawData, labelKey, categoryKey, valueKey) => {
   };
 
   const renderChartControls = () => {
-    const chartOptionsList = [
-      { type: "bar", label: "Batang" }, { type: "line", label: "Garis" },
-      { type: "pie", label: "Pie" }, { type: "donut", label: "Donut" },
-      { type: "scatter", label: "Scatter" }, { type: "heatmap", label: "Heatmap" },
-      { type: "", label: "Tabel" }, { type: "card", label: "Card" } // "" represents Table
-    ];
-    // Normalize activeVisualizationType for comparison: "" means table.
-    const currentSelection = activeVisualizationType === "" ? "" : activeVisualizationType;
-    return (
-      <div className="chart-controls flex mb-4 gap-2 flex-wrap">
+  const chartOptionsList = [
+    { type: "bar", label: "Batang" }, 
+    { type: "line", label: "Garis" },
+    { type: "pie", label: "Pie" }, 
+    { type: "donut", label: "Donut" },
+    { type: "scatter", label: "Scatter" }, 
+    { type: "heatmap", label: "Heatmap" },
+    { type: "", label: "Tabel" }, 
+    { type: "card", label: "Card" }
+  ];
+  
+  // Normalize activeVisualizationType for comparison: "" means table.
+  const currentSelection = activeVisualizationType === "" ? "" : activeVisualizationType;
+  const currentLabel = chartOptionsList.find(option => option.type === currentSelection)?.label || "Tabel";
+  
+  return (
+    <div className="chart-controls mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Jenis Visualisasi:
+      </label>
+      <select
+        value={currentSelection}
+        onChange={(e) => handleVisualizationTypeChange(e.target.value)}
+        className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      >
         {chartOptionsList.map((option) => (
-          <button
-            key={option.type}
-            className={`px-3 py-1 rounded text-sm ${currentSelection === option.type ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
-            onClick={() => handleVisualizationTypeChange(option.type)}
-          >
+          <option key={option.type} value={option.type}>
             {option.label}
-          </button>
+          </option>
         ))}
-      </div>
-    );
-  };
+      </select>
+    </div>
+  );
+};
 
   if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
 

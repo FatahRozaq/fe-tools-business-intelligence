@@ -8,6 +8,7 @@ import { MdCancel } from "react-icons/md";
 const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const [formData, setFormData] = useState({
     connection_name: "",
+    db_type: "",
     host: "",
     port: "",
     database: "",
@@ -18,8 +19,34 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+  const dbTypes = [
+    { value: "mysql", label: "MySQL" },
+    { value: "postgresql", label: "PostgreSQL" },
+    { value: "sqlserver", label: "SQL Server" }
+  ];
+
+  const getDefaultPort = (dbType) => {
+    const defaultPorts = {
+      mysql: "3306",
+      postgresql: "5432",
+      sqlserver: "1433"
+    };
+    return defaultPorts[dbType] || "";
+  };
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Auto-fill default port when database type changes
+    if (name === "db_type") {
+      setFormData({ 
+        ...formData, 
+        [name]: value,
+        port: getDefaultPort(value)
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = (e) => {
@@ -77,6 +104,27 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
             className={`form-control ${errors.connection_name ? 'is-invalid' : ''}`}
           />
           {errors.connection_name && <div className="invalid-feedback">{errors.connection_name[0]}</div>}
+        </div>
+
+        <div className="form-group">
+          <label>
+            Tipe Database <span className="text-danger">*</span>
+          </label>
+          <select
+            name="db_type"
+            value={formData.db_type}
+            onChange={handleChange}
+            required
+            className={`form-control ${errors.db_type ? 'is-invalid' : ''}`}
+          >
+            <option value="">Pilih Tipe Database</option>
+            {dbTypes.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+          {errors.db_type && <div className="invalid-feedback">{errors.db_type[0]}</div>}
         </div>
 
         <div className="form-group">

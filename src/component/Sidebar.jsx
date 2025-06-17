@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaSearch, FaSync, FaTrash, FaCogs } from "react-icons/fa";
+import { InputText } from "primereact/inputtext";
 import SidebarDiagram from "./SidebarDiagram/SidebarDiagram";
 import SidebarData from "./SidebarData";
 import config from "../config";
@@ -27,6 +28,9 @@ const Sidebar = () => {
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
   const [currentCanvasId, setCurrentCanvasId] = useState(0);
+  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [processingConnections, setProcessingConnections] = useState({});
 
   const [visualizationConfig, setVisualizationConfig] = useState({
     ...DEFAULT_CONFIG,
@@ -34,7 +38,6 @@ const Sidebar = () => {
 
   const [selectedVisualization, setSelectedVisualization] = useState(null);
   const [addNewVisualization, setAddNewVisualization] = useState(false);
-
   const [newVisualizationPayload, setNewVisualizationPayload] = useState(null);
 
   const fetchAllTables = () => {
@@ -68,15 +71,13 @@ const Sidebar = () => {
     const menuData = document.getElementById("menu-data");
     const menuVisualisasi = document.getElementById("menu-visualisasi");
 
-    if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas) {
+    if (sidebarData && sidebarDiagram && sidebarQuery && sidebarCanvas && menuData && menuVisualisasi) {
       if (selectedVisualization) {
-        // Jika ada visualisasi yg dipilih, tunjukkan sidebar diagram/style
         sidebarData.style.display = "none";
         sidebarDiagram.style.display = "block";
         menuData.classList.remove('active');
         menuVisualisasi.classList.add('active');
       } else {
-        // Jika tidak, tunjukkan sidebar data untuk buat baru
         sidebarData.style.display = "block";
         sidebarDiagram.style.display = "none";
         menuData.classList.add('active');
@@ -104,7 +105,6 @@ const Sidebar = () => {
     if (pilihQueryBtn) pilihQueryBtn.addEventListener("click", () => menuClickHandler("query"));
     if (pilihCanvasBtn) pilihCanvasBtn.addEventListener("click", () => menuClickHandler("canvas"));
     if (tambahDatasourceBtn) tambahDatasourceBtn.addEventListener("click", () => setShowAddDatasource(true));
-
   }, [selectedVisualization]);
 
   useEffect(() => {
@@ -112,12 +112,12 @@ const Sidebar = () => {
   }, []);
 
   const handleBuildVisualization = (payload, query, data) => {
-    setNewVisualizationPayload(payload); // Simpan payload
+    setNewVisualizationPayload(payload);
     setCanvasData(data);
     setCanvasQuery(query);
     setVisualizationConfig({ ...DEFAULT_CONFIG });
     setAddNewVisualization(true);
-    setSelectedVisualization(null); // Deselect apapun yang sedang dipilih
+    setSelectedVisualization(null);
   };
 
   const handleSaveSuccess = () => {
@@ -127,7 +127,6 @@ const Sidebar = () => {
 
   const fetchColumns = (table) => {
     if (columns[table]) return;
-
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
       .then((response) => {
@@ -151,7 +150,7 @@ const Sidebar = () => {
         setAddNewVisualization(false);
         setCanvasQuery("");
         setVisualizationType("");
-        setNewVisualizationPayload(null); // Reset payload setelah digunakan
+        setNewVisualizationPayload(null);
       }, 500);
     }
   }, [addNewVisualization, canvasQuery, visualizationType]);
@@ -169,7 +168,6 @@ const Sidebar = () => {
 
   const updateSelectedVisualizationType = (newType) => {
     if (!selectedVisualization) return;
-
     setCanvases((prevCanvases) =>
       prevCanvases.map((canvas) =>
         canvas.id === currentCanvasId
@@ -182,11 +180,7 @@ const Sidebar = () => {
           : canvas
       )
     );
-
-    setSelectedVisualization((prev) => ({
-      ...prev,
-      type: newType,
-    }));
+    setSelectedVisualization((prev) => ({ ...prev, type: newType }));
   };
 
   useEffect(() => {
@@ -206,12 +200,8 @@ const Sidebar = () => {
 
   const handleConfigUpdate = (config) => {
     setVisualizationConfig(config);
-
     if (selectedVisualization) {
-      setSelectedVisualization((prev) => ({
-        ...prev,
-        config: { ...config },
-      }));
+      setSelectedVisualization((prev) => ({ ...prev, config: { ...config } }));
     }
   };
 
@@ -220,16 +210,69 @@ const Sidebar = () => {
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
       .then((response) => {
         if (response.data.success) {
-          const activeCanvases = response.data.canvases;
-          setCanvases(activeCanvases);
+          setCanvases(response.data.canvases);
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
       })
-      .catch((error) => {
-        console.error("Error fetching canvases:", error);
-      });
+      .catch((error) => console.error("Error fetching canvases:", error));
   }, []);
+
+  const handleEtlAction = async (action, connectionName, connectionDetails) => {
+    setProcessingConnections(prev => ({ ...prev, [connectionName]: action }));
+    try {
+      const payload = { ...connectionDetails, connection_name: connectionName };
+      await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/${action}`, payload);
+      alert(`Datasource '${connectionName}' ${action} successful!`);
+      fetchAllTables();
+    } catch (error) {
+      console.error(`Error during ${action} for ${connectionName}:`, error);
+      alert(`Failed to ${action} datasource '${connectionName}'. See console for details.`);
+    } finally {
+      setProcessingConnections(prev => {
+        const newState = { ...prev };
+        delete newState[connectionName];
+        return newState;
+      });
+    }
+  };
+
+  const handleDelete = async (connectionName) => {
+    if (window.confirm(`Are you sure you want to delete the datasource '${connectionName}' and all its data from the warehouse? This action cannot be undone.`)) {
+      setProcessingConnections(prev => ({ ...prev, [connectionName]: 'delete' }));
+      try {
+        await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/delete`, { connection_name: connectionName });
+        alert(`Datasource '${connectionName}' deleted successfully!`);
+        fetchAllTables();
+      } catch (error) {
+        console.error(`Error deleting ${connectionName}:`, error);
+        alert(`Failed to delete datasource '${connectionName}'. See console for details.`);
+      } finally {
+        setProcessingConnections(prev => {
+          const newState = { ...prev };
+          delete newState[connectionName];
+          return newState;
+        });
+      }
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (!window.confirm(`Are you sure you want to run '${action}' for ALL datasources? This may take a long time.`)) {
+      return;
+    }
+
+    const allConnections = Object.entries(groupedTables);
+    for (const [name, data] of allConnections) {
+      // Assuming 'data.connection_details' holds the necessary credentials
+      if (data.connection_details) {
+        await handleEtlAction(action, name, data.connection_details);
+      } else {
+        alert(`Skipping ${name}: Connection details not found.`);
+      }
+    }
+    alert(`Bulk ${action} process completed for all datasources.`);
+  };
 
   const renderSidebarContent = () => {
     if (loading) {
@@ -246,6 +289,25 @@ const Sidebar = () => {
     if (Object.keys(groupedTables).length === 0) {
       return <SidebarDatasource onTambahDatasource={() => setShowAddDatasource(true)} />;
     }
+
+    const lowerCaseQuery = searchQuery.toLowerCase();
+    const filteredGroupedEntries = Object.entries(groupedTables)
+      .map(([prefix, groupData]) => {
+        const groupNameMatches = prefix.toLowerCase().includes(lowerCaseQuery);
+        const matchingTables = groupData.tables.filter(table =>
+          table.table_name.toLowerCase().includes(lowerCaseQuery)
+        );
+
+        if (groupNameMatches || matchingTables.length > 0) {
+          return [prefix, {
+            ...groupData,
+            tables: groupNameMatches ? groupData.tables : matchingTables
+          }];
+        }
+        return null;
+      })
+      .filter(Boolean);
+
     return (
       <div id="sidebar" className="sidebar">
         <div className="sub-title d-flex justify-content-between align-items-center">
@@ -254,7 +316,7 @@ const Sidebar = () => {
             <span className="sub-text">Datasources</span>
           </div>
           <button
-            className="btn btn-sm btn-outline-primary"
+            className="btn btn-sm btn-outline-dark"
             onClick={() => setShowAddDatasource(true)}
             title="Tambah Datasource Baru"
           >
@@ -262,12 +324,41 @@ const Sidebar = () => {
           </button>
         </div>
         <hr className="full-line" />
+        <div className="px-2 my-2 d-flex flex-column gap-2">
+            <div className="d-flex justify-content-around gap-2">
+              <button
+                  className="btn btn-sm btn-outline-secondary w-100"
+                  style={{ height: '50px' }}
+                  onClick={() => handleBulkAction('refresh')}
+              >
+                  <FaSync /> Refresh All
+              </button>
+              <button
+                  className="btn btn-sm btn-outline-secondary w-100"
+                  style={{ height: '50px' }}
+                  onClick={() => handleBulkAction('full-refresh')}
+              >
+                  <FaSync /> Full Refresh
+              </button>
+          </div>
+
+            <span className="p-input-icon-left w-100 pl-2">
+                <InputText
+                className="w-100"
+                placeholder="Search datasource/table/column..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </span>
+        </div>
+
+        <hr className="full-line" />
         <div className="accordion" id="groupAccordion">
-          {Object.entries(groupedTables).map(([prefix, groupData], groupIndex) => (
+          {filteredGroupedEntries.map(([prefix, groupData], groupIndex) => (
             <div className="accordion-item" key={prefix}>
-              <h2 className="accordion-header" id={`group-heading-${groupIndex}`}>
+              <h2 className="accordion-header d-flex align-items-center" id={`group-heading-${groupIndex}`}>
                 <button
-                  className="accordion-button collapsed"
+                  className="accordion-button collapsed flex-grow-1"
                   type="button"
                   data-bs-toggle="collapse"
                   data-bs-target={`#group-collapse-${groupIndex}`}
@@ -275,7 +366,19 @@ const Sidebar = () => {
                   aria-controls={`group-collapse-${groupIndex}`}
                 >
                   {prefix} ({groupData.table_count})
+                   {processingConnections[prefix] && <span className="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>}
                 </button>
+                <div className="dropdown">
+                    <button className="btn btn-sm btn-light me-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled={!!processingConnections[prefix]}>
+                        <FaCogs/>
+                    </button>
+                    <ul className="dropdown-menu">
+                        <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('refresh', prefix, groupData.connection_details); }}>Refresh</a></li>
+                        <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('full-refresh', prefix, groupData.connection_details); }}>Full Refresh</a></li>
+                        <li><hr className="dropdown-divider"/></li>
+                        <li><a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); handleDelete(prefix); }}>Delete</a></li>
+                    </ul>
+                </div>
               </h2>
               <div
                 id={`group-collapse-${groupIndex}`}
@@ -311,7 +414,9 @@ const Sidebar = () => {
                         >
                           <div className="column-container">
                             {columns[table.full_name] ? (
-                              columns[table.full_name].map((col, colIndex) => (
+                              columns[table.full_name]
+                                .filter(col => col.name.toLowerCase().includes(lowerCaseQuery))
+                                .map((col, colIndex) => (
                                 <div
                                   key={colIndex}
                                   className="column-card"
@@ -350,7 +455,6 @@ const Sidebar = () => {
   return (
     <>
       {renderSidebarContent()}
-
       <Header
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
@@ -358,25 +462,16 @@ const Sidebar = () => {
         setCanvases={setCanvases}
         setCurrentCanvasId={setCurrentCanvasId}
       />
-
       <SidebarCanvas
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         currentCanvasId={currentCanvasId}
         setCurrentCanvasId={setCurrentCanvasId}
       />
-
-      {/* <SidebarData
-        setCanvasData={setCanvasData}
-        selectedTable={selectedTable}
-        setCanvasQuery={handleQuerySubmit}
-        onVisualizationTypeChange={handleVisualizationTypeChange}
-      /> */}
-
       <SidebarData
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
-        onBuildVisualization={handleBuildVisualization} // Prop baru
+        onBuildVisualization={handleBuildVisualization}
         onVisualizationTypeChange={handleVisualizationTypeChange}
         editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
       />
@@ -390,7 +485,6 @@ const Sidebar = () => {
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
       />
-
       <Canvas
         data={canvasData}
         query={addNewVisualization ? canvasQuery : ""}
@@ -407,16 +501,15 @@ const Sidebar = () => {
         onUpdateVisualizationType={updateSelectedVisualizationType}
         newVisualizationPayload={newVisualizationPayload}
       />
-
       <style jsx>{`
         .sidebar {
-          max-height: 100vh;
+          margin-top: 0px;
           overflow-y: auto;
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
         .sidebar::-webkit-scrollbar {
-          display: none; /* Chrome, Safari, and Opera */
+          display: none;
         }
       `}</style>
     </>

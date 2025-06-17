@@ -13,8 +13,6 @@ import DateRangeSelector from "./DateRangeSelector";
 import TopNSelector from "./TopNSelector";
 
 const SidebarData = ({
-  setCanvasData,
-  // setCanvasQuery,
   onBuildVisualization,
   selectedTable,
   onVisualizationTypeChange,
@@ -45,40 +43,44 @@ const SidebarData = ({
   const [dragOver, setDragOver] = useState({ dimensi: [], metrik: [] });
   const [showDateRangePopup, setShowDateRangePopup] = useState(false);
   const [dateFilter, setDateFilter] = useState(null);
+  const [activeTables, setActiveTables] = useState([]);
 
   useEffect(() => {
     if (editingPayload) {
-      // Jika ada payload, isi form
       rehydrateStateFromPayload(editingPayload);
     } else {
-      // Jika tidak ada payload, reset form untuk membuat viz baru
       resetForm();
     }
   }, [editingPayload]);
 
-  // Fungsi untuk mem-parsing string "table.column" kembali ke format state
   const parseColumnString = (colStr) => {
     const parts = colStr.split('.');
     if (parts.length < 2) return null;
     const tableName = parts[0];
-    const columnName = parts.slice(1).join('.'); // Handle jika nama kolom mengandung titik
+    const columnName = parts.slice(1).join('.');
     return JSON.stringify({ tableName, columnName });
   };
 
-  // Fungsi untuk mengisi state dari payload yang ada
   const rehydrateStateFromPayload = (payload) => {
-    // Dimensi
+    const allTablesInPayload = new Set();
+    if (payload.tabel) {
+        allTablesInPayload.add(payload.tabel);
+    }
+    
     if (payload.dimensi && payload.dimensi.length > 0) {
-      const rehydratedDimensi = payload.dimensi.map(parseColumnString).filter(Boolean);
+      const rehydratedDimensi = payload.dimensi.map(d => {
+        allTablesInPayload.add(d.split('.')[0]);
+        return parseColumnString(d);
+      }).filter(Boolean);
       setDimensiInputs(rehydratedDimensi);
     } else {
       setDimensiInputs([""]);
     }
 
-    // Metrik
     if (payload.metriks && payload.metriks.length > 0) {
       const rehydratedMetriks = payload.metriks.map(metrikStr => {
         const [colPart, agg] = metrikStr.split('|');
+        allTablesInPayload.add(colPart.split('.')[0]);
         const parsedCol = parseColumnString(colPart);
         return parsedCol ? `${parsedCol}|${agg}` : null;
       }).filter(Boolean);
@@ -92,23 +94,18 @@ const SidebarData = ({
       setMetrikAggregation([]);
     }
     
-    // Join
-    // (Implementasi join rehydration jika diperlukan, untuk saat ini kita sederhanakan)
-    setJoinDimensiData(payload.tabel_join || []);
-    setJoinMetrikData([]); // Asumsi join hanya dari dimensi untuk saat ini
+    const joins = payload.tabel_join || [];
+    joins.forEach(j => allTablesInPayload.add(j.tabel));
+    setJoinDimensiData(joins);
+    setJoinMetrikData([]);
 
-    // Filter
-    const dateFilterFromPayload = payload.filters?.find(f => f.operator === 'between');
     const userFilters = payload.filters?.filter(f => f.operator !== 'between') || [];
     setFilters(userFilters.length > 0 ? userFilters : [{ mode: "INCLUDE", logic: "AND", column: "", operator: "=", value: "" }]);
     
-    // Date Filter
     setDateFilter(payload.date_filter_details || null);
-
-    // Top N
     setTopNConfig(payload.topN ? { value: payload.topN } : null);
-    
-    setReadyToCreateVisualization(true); // Tandai bahwa data siap
+    setActiveTables(Array.from(allTablesInPayload));
+    setReadyToCreateVisualization(true);
   };
 
   useEffect(() => {
@@ -143,34 +140,30 @@ const SidebarData = ({
   
   const handleOpenJoinDialog = async (type) => {
     setIsLoading(true);
-    const existingTables = new Set();
-    [...dimensiInputs, ...metrikInputs].forEach(item => {
-      if (typeof item === 'string' && item.startsWith('{')) {
-        try { existingTables.add(JSON.parse(item.split('|')[0]).tableName); } catch { }
-      }
-    });
-
+    
     try {
       const response = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/get-joinable-tables`, {
-        existing_tables: Array.from(existingTables)
+        existing_tables: activeTables 
       });
+
       if (response.data.success) {
         setJoinableTables(response.data.data);
         if (type === 'dimensi') {
           if (dimensiInputs.some(d => d.trim() === "")) {
-            showToast("warn", "Peringatan", "Isi dulu dimensi yang kosong.");
-          } else {
-            setShowPopup(true);
+            showToast("warn", "Warning", "Please fill the empty dimension slot first.");
+            setIsLoading(false);
+            return;
           }
+          setShowPopup(true);
         } else {
           setShowPopupMetrik(true);
           setWaitingForConfirmation(true);
         }
       } else {
-        showToast('error', 'Gagal Memuat', 'Tidak dapat memvalidasi tabel untuk join.');
+        showToast('error', 'Failed to Load', 'Could not validate tables for join.');
       }
     } catch (error) {
-      showToast('error', 'Error', 'Terjadi kesalahan saat validasi join.');
+      showToast('error', 'Error', 'An error occurred during join validation.');
     } finally {
       setIsLoading(false);
     }
@@ -186,44 +179,32 @@ const SidebarData = ({
         const droppedColumnData = JSON.parse(data);
         const droppedTableName = droppedColumnData.tableName;
 
-        const existingTables = new Set();
-        [...dimensiInputs, ...metrikInputs].forEach(item => {
-            if (typeof item === 'string' && item.startsWith('{')) {
-                try {
-                    const parsedItem = JSON.parse(item.split('|')[0]);
-                    if (parsedItem.tableName) {
-                        existingTables.add(parsedItem.tableName);
-                    }
-                } catch {}
-            }
-        });
-
-        if (existingTables.size > 0 && !existingTables.has(droppedTableName)) {
+        if (activeTables.length > 0 && !activeTables.includes(droppedTableName)) {
             setIsLoading(true);
             try {
                 const response = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/get-joinable-tables`, {
-                    existing_tables: Array.from(existingTables)
+                    existing_tables: activeTables
                 });
-
                 if (response.data.success) {
                     const joinableTablesList = response.data.data;
                     if (!joinableTablesList.includes(droppedTableName)) {
-                        showToast("error", "Error Relasi", `Tabel "${formatDisplayName(droppedTableName)}" tidak dapat digabungkan dengan tabel yang sudah ada.`);
-                        setIsLoading(false);
+                        showToast("error", "Relation Error", `Table "${formatDisplayName(droppedTableName)}" cannot be joined with the existing tables.`);
                         return;
                     }
                 } else {
-                    showToast('error', 'Gagal Memvalidasi', 'Tidak dapat memvalidasi relasi tabel.');
-                    setIsLoading(false);
+                    showToast('error', 'Validation Failed', 'Could not validate table relation.');
                     return;
                 }
             } catch (error) {
-                showToast('error', 'Error', 'Terjadi kesalahan saat validasi join.');
-                setIsLoading(false);
+                showToast('error', 'Error', 'An error occurred during join validation.');
                 return;
             } finally {
                 setIsLoading(false);
             }
+        }
+
+        if (!activeTables.includes(droppedTableName)) {
+            setActiveTables(prev => [...prev, droppedTableName]);
         }
 
         const stringifiedColumnData = JSON.stringify(droppedColumnData);
@@ -242,11 +223,9 @@ const SidebarData = ({
                 setMetrikAggregation(newMetrikAggregation);
             }
         }
-        showToast("success", "Success", `Kolom berhasil ditambahkan ke ${type}`);
+        showToast("success", "Success", `Column added to ${type}`);
     } catch (error) {
-        showToast("error", "Error", "Gagal memproses data yang di-drop");
-    } finally {
-        setIsLoading(false);
+        showToast("error", "Error", "Failed to process dropped data");
     }
   };
 
@@ -293,6 +272,11 @@ const SidebarData = ({
   };
 
   const handleJoinSelection = (type) => {
+    const tableToAdd = selectedJoinTable;
+    if (tableToAdd && !activeTables.includes(tableToAdd)) {
+        setActiveTables(prev => [...prev, tableToAdd]);
+    }
+    
     const newJoinDimensiIndexes = [...joinDimensiIndexes];
     const lastDimensiIndex = dimensiInputs.length - 1;
     const newJoinData = [...joinDimensiData];
@@ -313,6 +297,11 @@ const SidebarData = ({
 
   const handleJoinSelectionMetrik = (type) => {
     if (waitingForConfirmation) {
+      const tableToAdd = selectedJoinTableMetrik;
+      if (tableToAdd && !activeTables.includes(tableToAdd)) {
+          setActiveTables(prev => [...prev, tableToAdd]);
+      }
+
       const newJoinData = [...joinMetrikData];
       const lastMetrikIndex = metrikInputs.length;
       if (type !== "tanpa join") {
@@ -342,26 +331,16 @@ const SidebarData = ({
     setShowDateRangePopup(false);
     setTopNConfig(null);
     setShowTopNPopup(false);
+    setActiveTables([]);
     showToast("info", "Info", "Form reset for new visualization");
   };
 
   const sendDataToAPI = () => {
-    // ... (kode untuk membangun payload, sama seperti sebelumnya) ...
     if (dimensiInputs.length === 1 && dimensiInputs[0].trim() === "" && metrikInputs.length === 0) {
       showToast("error", "Error", "Please add at least one dimension or metric");
       return;
     }
-    let table = "";
-    const firstValidInput = dimensiInputs.find(d => d.startsWith('{')) || metrikInputs.find(m => m.startsWith('{'));
-    if (firstValidInput) {
-      try {
-        const parsed = JSON.parse(firstValidInput.split('|')[0]);
-        table = parsed.tableName || "";
-      } catch { }
-    }
-    if (!table && selectedTable) {
-      table = selectedTable;
-    }
+    let table = activeTables.length > 0 ? activeTables[0] : selectedTable;
 
     const dimensi = dimensiInputs.map((dimensi) => {
       try {
@@ -382,7 +361,7 @@ const SidebarData = ({
 
     const tabelJoin = [...joinDimensiData, ...joinMetrikData].filter(j => j && j.tabel && j.join_type !== "tanpa join");
     const userDefinedFilters = filters.filter(f => f.column && f.operator && f.value !== "").map(filter => ({
-      column: filter.column.includes(".") ? filter.column : `${table || selectedTable}.${filter.column}`,
+      column: filter.column.includes(".") ? filter.column : `${table}.${filter.column}`,
       ...filter
     }));
     let finalFilters = [...userDefinedFilters];
@@ -403,7 +382,6 @@ const SidebarData = ({
     axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, payload)
       .then((response) => {
         if (response.data.success) {
-          // Panggil onBuildVisualization dengan payload dan hasilnya
           onBuildVisualization(payload, response.data.query, response.data.data);
           setReadyToCreateVisualization(true);
           showToast("success", "Success", "Data fetched successfully");
@@ -514,7 +492,7 @@ const SidebarData = ({
       {showFooter && (<FooterBar filters={filters} setFilters={setFilters} handleApplyFilters={handleApplyFilters} handleToggleFooter={handleToggleFooter} availableTables={tables} currentTable={selectedTable || ''} />)}
       <style jsx>{`
         .join-badge { background-color: #e3f2fd; color: #1565c0; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; text-transform: capitalize; }
-        .sidebar-2 { max-height: 100vh; overflow-y: auto; padding-bottom: 60px; }
+        .sidebar-2 { max-height: 100vh; overflow-y: auto; padding-bottom: 60px; margin-top: 15px;}
         .drop-target { border: 2px dashed transparent; border-radius: 4px; transition: all 0.2s; }
         .drag-over { border: 2px dashed #2196f3; background-color: rgba(33, 150, 243, 0.1); }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; }

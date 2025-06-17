@@ -6,7 +6,7 @@ import logo from "../assets/img/Logo TBI.png";
 import config from "../config";
 import axios from "axios";
 
-const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases, currentCanvasId, setCurrentCanvasId }) => {
+const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases, currentCanvasId, setCurrentCanvasId,  totalCanvasCount, setTotalCanvasCount }) => {
   const [totalCanvases, setTotalCanvases] = useState(0);
 
   useEffect(() => {
@@ -25,9 +25,15 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
       .then((response) => {
         if (response.data.success) {
+          // Filter canvases where is_deleted is false
           const activeCanvases = response.data.canvases;
           setCanvases(activeCanvases);
-          setTotalCanvases(activeCanvases.length);
+          setTotalCanvasCount(activeCanvases.length); // Update the total canvases count
+
+          // Log canvas index and id_canvas
+          activeCanvases.forEach((canvas, index) => {
+            console.log(`Canvas Index: ${index}, Canvas ID: ${canvas.id}`);
+          });
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
@@ -35,33 +41,37 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
       .catch((error) => {
         console.error("Error fetching canvases:", error);
       });
-  }, [setCanvases, setCurrentCanvasIndex, setCurrentCanvasId]);
+  }, [setCanvases, setCurrentCanvasIndex, setCurrentCanvasId, setTotalCanvasCount]);
 
   const goToNextCanvas = () => {
-    if (currentCanvasIndex < totalCanvases - 1 && canvases.length > 0) {
-      const newIndex = currentCanvasIndex + 1;
-      const newCanvasId = canvases[newIndex].id;
-      
-      setCurrentCanvasIndex(newIndex);
-      setCurrentCanvasId(newCanvasId);
-      
-      localStorage.setItem("currentCanvasIndex", newIndex);
-      localStorage.setItem("currentCanvasId", newCanvasId);
-    }
-  };
+  const newIndex = currentCanvasIndex + 1;
+  if (newIndex < canvases.length && canvases[newIndex]?.id) {
+    const newCanvasId = canvases[newIndex].id;
+    setCurrentCanvasIndex(newIndex);
+    setCurrentCanvasId(newCanvasId);
+    localStorage.setItem("currentCanvasIndex", newIndex);
+    localStorage.setItem("currentCanvasId", newCanvasId);
+    console.log("Canvas Index: ", newIndex);
+    console.log("Canvas ID: ", newCanvasId);
+  } else {
+    console.warn("Next canvas not ready or undefined:", canvases[newIndex]);
+  }
+};
+const goToPreviousCanvas = () => {
+  if (currentCanvasIndex > 0 && canvases.length > 0) {
+    const newIndex = currentCanvasIndex - 1;
+    const newCanvasId = canvases[newIndex].id;
 
-  const goToPreviousCanvas = () => {
-    if (currentCanvasIndex > 0 && canvases.length > 0) {
-      const newIndex = currentCanvasIndex - 1;
-      const newCanvasId = canvases[newIndex].id;
-      
-      setCurrentCanvasIndex(newIndex);
-      setCurrentCanvasId(newCanvasId);
-      
-      localStorage.setItem("currentCanvasIndex", newIndex);
-      localStorage.setItem("currentCanvasId", newCanvasId);
-    }
-  };
+    setCurrentCanvasIndex(newIndex);
+    setCurrentCanvasId(newCanvasId);
+
+    localStorage.setItem("currentCanvasIndex", newIndex);
+    localStorage.setItem("currentCanvasId", newCanvasId);
+
+    console.log("Canvas Index: ", newIndex);
+    console.log("Canvas ID: ", newCanvasId);
+  }
+};
 
   return (
     <header className="header fixed-top d-flex align-items-center p-3 bg-white shadow">
@@ -69,24 +79,24 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
         <img src={logo} alt="Logo" width={10} height={10} />
       </div>
       <div className="d-flex flex-column">
-        <span className="fw-bold">Tools Business Intelligence</span>
+        <span className="fw-bold">Tools Dasbor Interaktif</span>
         <div className="d-flex justify-content-center align-items-center text-muted" style={{ cursor: 'pointer' }}>
           <span
             className="cursor-pointer"
             onClick={goToPreviousCanvas}
             style={{ padding: "0 10px", fontSize: "20px" }}
           >
-            ←
+            &#8592;
           </span>
           <span id="menu-canvas">
-            Kanvas {totalCanvases > 0 ? currentCanvasIndex + 1 : 0} dari {totalCanvases}
+            Kanvas {currentCanvasIndex + 1} dari {totalCanvasCount}
           </span>
           <span
             className="cursor-pointer"
             onClick={goToNextCanvas}
             style={{ padding: "0 10px", fontSize: "20px" }}
           >
-            →
+            &#8594;
           </span>
           <span className="mx-2">|</span>
 
@@ -99,7 +109,7 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
 
           <span id="menu-visualisasi" className="cursor-pointer d-flex align-items-center">
             <AiOutlinePieChart className="me-1" />
-            Pilih Visualisasi
+            Konfigurasi
           </span>
 
           <span className="mx-2">|</span>
@@ -111,7 +121,7 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
 
           <span className="mx-2">|</span>
           
-          <span id="menu-tambah-datasource" className="cursor-pointer d-flex align-items-center text-primary">
+          <span id="menu-tambah-datasource" className="cursor-pointer d-flex align-items-center">
             <FaPlus className="me-1" />
             Tambah Datasource
           </span>
