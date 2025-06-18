@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "react-apexcharts";
 import axios from "axios";
 import config from "../config"; // Assuming this path is correct
@@ -10,6 +10,7 @@ const CardComponent = ({ data, labelKey, valueKey, visualizationConfig }) => {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
   }
 
+  // Get the first row's value
   const firstRow = data[0];
   const label = firstRow[labelKey];
   const value = firstRow[valueKey];
@@ -107,6 +108,8 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   const [activeVisualizationType, setActiveVisualizationType] = useState(
     visualizationType || requestPayload?.visualizationType || "bar"
   );
+
+  const skipConfigUpdateRef = useRef(true);
   
   useEffect(() => {
     if (visualizationType) {
@@ -159,7 +162,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         },
       },
       subtitle: {
-        text: vc.subtitle || "",
+        text: vc.subtitle || "Sub Judul Visualisasi",
         align: vc.subtitlePosition || "center",
         margin: 10,
         offsetX: 0,
@@ -708,7 +711,16 @@ const transformGroupedData = (rawData, labelKey, categoryKey, valueKey) => {
         delete persistConfig.visualizationOptions;
     }
 
-    if (!savedVisualizationId && currentCanvasId && requestPayload.query) {
+    if (skipConfigUpdateRef.current) {
+    skipConfigUpdateRef.current = false;
+    return;
+  }
+
+    if (!savedVisualizationId) { // Initial Save because savedVisualizationId was reset
+      // console.log("Effect 2: Attempting initial save...");
+      console.log(
+      `Config changed, updating visualization ID ${savedVisualizationId}`
+    );
       const savePayload = {
           id_canvas: currentCanvasId, 
           id_visualization: requestPayload.id_visualization,

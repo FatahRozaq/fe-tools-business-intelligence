@@ -27,9 +27,10 @@ const Sidebar = () => {
   const visualizationTypeRef = useRef(visualizationType);
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
-  const [currentCanvasId, setCurrentCanvasId] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingConnections, setProcessingConnections] = useState({});
+  const [currentCanvasId, setCurrentCanvasId] = useState(null);
+  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
 
   const [visualizationConfig, setVisualizationConfig] = useState({
     ...DEFAULT_CONFIG,
@@ -37,6 +38,7 @@ const Sidebar = () => {
 
   const [selectedVisualization, setSelectedVisualization] = useState(null);
   const [addNewVisualization, setAddNewVisualization] = useState(false);
+
   const [newVisualizationPayload, setNewVisualizationPayload] = useState(null);
 
   const fetchAllTables = () => {
@@ -104,6 +106,7 @@ const Sidebar = () => {
     if (pilihQueryBtn) pilihQueryBtn.addEventListener("click", () => menuClickHandler("query"));
     if (pilihCanvasBtn) pilihCanvasBtn.addEventListener("click", () => menuClickHandler("canvas"));
     if (tambahDatasourceBtn) tambahDatasourceBtn.addEventListener("click", () => setShowAddDatasource(true));
+
   }, [selectedVisualization]);
 
   useEffect(() => {
@@ -126,6 +129,7 @@ const Sidebar = () => {
 
   const fetchColumns = (table) => {
     if (columns[table]) return;
+
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${table}`)
       .then((response) => {
@@ -167,6 +171,7 @@ const Sidebar = () => {
 
   const updateSelectedVisualizationType = (newType) => {
     if (!selectedVisualization) return;
+
     setCanvases((prevCanvases) =>
       prevCanvases.map((canvas) =>
         canvas.id === currentCanvasId
@@ -209,7 +214,9 @@ const Sidebar = () => {
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
       .then((response) => {
         if (response.data.success) {
-          setCanvases(response.data.canvases);
+          const activeCanvases = response.data.canvases;
+          setCanvases(activeCanvases);
+          setTotalCanvasCount(activeCanvases.length);
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
@@ -454,23 +461,55 @@ const Sidebar = () => {
   return (
     <>
       {renderSidebarContent()}
-      <Header
+
+      {/* <Header
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         canvases={canvases}
         setCanvases={setCanvases}
         setCurrentCanvasId={setCurrentCanvasId}
+      /> */}
+
+      <Header
+        currentCanvasIndex={currentCanvasIndex}
+        setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
+         canvases={canvases}  // Pass canvases as a prop
+        setCanvases={setCanvases}  // Pass setCanvases to Header component
+        setCurrentCanvasId={setCurrentCanvasId}
+        totalCanvasCount={totalCanvasCount}
       />
+
       <SidebarCanvas
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
         currentCanvasId={currentCanvasId}
         setCurrentCanvasId={setCurrentCanvasId}
+        totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+        setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
+        canvases={canvases}
+        setCanvases={setCanvases}
       />
       <SidebarData
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
         onBuildVisualization={handleBuildVisualization}
+        totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+        setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
+        canvases={canvases}
+        setCanvases={setCanvases}
+      />
+
+      {/* <SidebarData
+        setCanvasData={setCanvasData}
+        selectedTable={selectedTable}
+        setCanvasQuery={handleQuerySubmit}
+        onVisualizationTypeChange={handleVisualizationTypeChange}
+      /> */}
+
+      <SidebarData
+        setCanvasData={setCanvasData}
+        selectedTable={selectedTable}
+        onBuildVisualization={handleBuildVisualization} // Prop baru
         onVisualizationTypeChange={handleVisualizationTypeChange}
         editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
       />
@@ -484,6 +523,7 @@ const Sidebar = () => {
         onQuerySubmit={handleQuerySubmit}
         onVisualizationTypeChange={handleVisualizationTypeChange}
       />
+
       <Canvas
         data={canvasData}
         query={addNewVisualization ? canvasQuery : ""}

@@ -5,16 +5,32 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import axios from "axios";
 import SubmitButton from "./Button/SubmitButton";
 
-const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanvasId, setCurrentCanvasId }) => {
-  const [canvases, setCanvases] = useState([]);
+const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanvasId, setCurrentCanvasId, totalCanvasCount, setTotalCanvasCount, canvases, setCanvases, }) => {
   const [menuVisibleIndex, setMenuVisibleIndex] = useState(null);
+  // const [totalCanvasCount, setTotalCanvasCount] = useState(0);
   const [editIndex, setEditIndex] = useState(null); // Track the index of the canvas being edited
   const [newName, setNewName] = useState(""); // Track the new name input value
   const menuRef = useRef(null);
   const inputRef = useRef(null); // Reference to the input field for autofocus
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingCanvas, setIsAddingCanvas] = useState(false); // Track if canvas is being added
   const [addingCanvas, setAddingCanvas] = useState(false); // To control the newly added canvas
+  const [nameError, setNameError] = useState(""); // Error untuk nama canvas
+  
 
+
+
+  useEffect(() => {
+  if (currentCanvasId !== null && currentCanvasId !== undefined) {
+    localStorage.setItem("currentCanvasId", currentCanvasId.toString());
+  }
+}, [currentCanvasId]);
+
+useEffect(() => {
+  localStorage.setItem("currentCanvasIndex", currentCanvasIndex.toString());
+}, [currentCanvasIndex]);
+
+
+  // Fetch canvases on component mount and after adding a new canvas
   useEffect(() => {
     axios
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
@@ -22,6 +38,17 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
         if (res.data.success) {
           const sortedCanvases = res.data.canvases.sort((a, b) => a.id - b.id);
           setCanvases(sortedCanvases);
+          setTotalCanvasCount(sortedCanvases.length);
+          console.log("Total canvases:", sortedCanvases.length);
+
+          // If we are adding a canvas, maintain the current canvas index and id
+          if (isAddingCanvas) {
+            setCurrentCanvasId(sortedCanvases[sortedCanvases.length - 1].id);
+            setCurrentCanvasIndex(sortedCanvases.length - 1);
+            localStorage.setItem("currentCanvasId", sortedCanvases[sortedCanvases.length - 1].id);
+            localStorage.setItem("currentCanvasIndex", sortedCanvases.length - 1);
+            setIsAddingCanvas(false); // Reset adding canvas state
+          }
         } else {
           console.error("Gagal mengambil daftar canvas");
         }
@@ -29,7 +56,7 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
       .catch((err) => {
         console.error("Error:", err);
       });
-  }, []);
+  }, [isAddingCanvas, setCurrentCanvasIndex, setCurrentCanvasId, setTotalCanvasCount]);
 
   const handleCanvasClick = (canvas, index) => {
     if (menuVisibleIndex === null) {
@@ -47,50 +74,81 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
   };
 
   const handleSaveName = (index) => {
-    if (newName.trim() === "") return;
+  if (newName.trim() === "") return;
+
+  axios
+    .put(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/update/${canvases[index].id}`, {
+      name: newName,
+    })
+    .then((res) => {
+      if (res.data.success) {
+        const updatedCanvases = [...canvases];
+        updatedCanvases[index].name = newName;
+        setCanvases(updatedCanvases);
+        setEditIndex(null);
+        setNewName("");
+        setNameError(""); // Hapus pesan error jika sukses
+      } else {
+        console.error("Failed to update the canvas name:", res.data.message);
+      }
+    })
+    .catch((err) => {
+      if (err.response && err.response.status === 422) {
+        const errorMsg = err.response.data.errors?.name?.[0] || "Gagal validasi nama.";
+        setNameError(errorMsg);
+      } else {
+        console.error("Error updating canvas name:", err);
+      }
+    });
+};
+
+
+  const handleDelete = (index) => {
+  const canvasId = canvases[index].id;
+  if (window.confirm("Yakin ingin menghapus kanvas ini?")) {
     axios
-      .put(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/update/${canvases[index].id}`, {
-        name: newName,
-      })
+      .put(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/delete/${canvasId}`)
       .then((res) => {
         if (res.data.success) {
-          const updatedCanvases = [...canvases];
-          updatedCanvases[index].name = newName;
+          // Remove the deleted canvas from the state
+          const updatedCanvases = canvases.filter((_, i) => i !== index);
           setCanvases(updatedCanvases);
-          setEditIndex(null);
-          setNewName("");
+
+          // Set the previous canvas index as the current index
+          let newIndex = currentCanvasIndex;
+          if (updatedCanvases.length > 0) {
+            // If there are canvases remaining, select the previous canvas
+            if (currentCanvasIndex === index) {
+              newIndex = currentCanvasIndex > 0 ? currentCanvasIndex - 1 : 0;
+            }
+          } else {
+            // If no canvases remain, set to -1 or null
+            newIndex = -1;
+          }
+
+          // Update state and localStorage with the new index and ID
+          setCurrentCanvasIndex(newIndex);
+          setCurrentCanvasId(updatedCanvases.length > 0 ? updatedCanvases[newIndex].id : null);
+          localStorage.setItem("currentCanvasIndex", newIndex);
+          localStorage.setItem("currentCanvasId", updatedCanvases.length > 0 ? updatedCanvases[newIndex].id : null);
+
+          // Reset menu visibility
+          setMenuVisibleIndex(null);
+          setTotalCanvasCount(updatedCanvases.length);
+          console.log("Total canvases:", sortedCanvases.length);
+
+          // Log the canvas index and id_canvas after deletion
+          console.log(`Canvas Index: ${newIndex}, Canvas ID: ${updatedCanvases.length > 0 ? updatedCanvases[newIndex].id : 'None'}`);
         } else {
-          console.error("Failed to update the canvas name:", res.data.message);
+          console.error("Failed to delete the canvas:", res.data.message);
         }
       })
       .catch((err) => {
-        console.error("Error updating canvas name:", err);
+        console.error("Error deleting canvas:", err);
       });
-  };
+  }
+};
 
-  const handleDelete = (index) => {
-    const canvasId = canvases[index].id;
-    if (window.confirm("Yakin ingin menghapus kanvas ini?")) {
-      axios
-        .put(`${config.API_BASE_URL}/api/kelola-dashboard/canvas/delete/${canvasId}`)
-        .then((res) => {
-          if (res.data.success) {
-            const updatedCanvases = canvases.filter((_, i) => i !== index);
-            setCanvases(updatedCanvases);
-            setMenuVisibleIndex(null);
-            if (currentCanvasIndex === index) {
-              setCurrentCanvasIndex(0);
-              setCurrentCanvasId(updatedCanvases.length > 0 ? updatedCanvases[0].id : null);
-            }
-          } else {
-            console.error("Failed to delete the canvas:", res.data.message);
-          }
-        })
-        .catch((err) => {
-          console.error("Error deleting canvas:", err);
-        });
-    }
-  };
 
   const handleClickOutside = (e) => {
     if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -119,36 +177,59 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
   };
 
   const saveNewCanvas = () => {
-    if (newName.trim() === "") return;
+  if (newName.trim() === "") return;
 
-    axios
-      .post(`${config.API_BASE_URL}/api/kelola-dashboard/canvas`, {
-        name: newName,
-        id_project: 1,
-        created_by: "admin",
-        created_time: new Date().toISOString(),
-        is_deleted: false,
-      })
-      .then((res) => {
-        if (res.data.success) {
-          const newCanvas = res.data.canvas;
-          const newCanvases = [...canvases, newCanvas];
-          setCanvases(newCanvases);
-          
-          // Set the newly created canvas as current
-          const newIndex = canvases.length;
-          setCurrentCanvasIndex(newIndex);
-          setCurrentCanvasId(newCanvas.id);
-          localStorage.setItem("currentCanvasIndex", newIndex);
-          setAddingCanvas(false);
-          setNewName("");
-        } else {
-          console.error("Failed to add the new canvas:", res.data.message);
-        }
-      })
-      .catch((err) => {
+  axios
+    .post(`${config.API_BASE_URL}/api/kelola-dashboard/canvas`, {
+      name: newName,
+      id_project: 1,
+      created_by: "admin",
+      created_time: new Date().toISOString(),
+      is_deleted: false,
+    })
+    .then((res) => {
+      if (res.data.success) {
+        // const newCanvas = res.data.canvas;
+        const rawCanvas = res.data.canvas;
+const newCanvas = {
+  ...rawCanvas,
+  id: rawCanvas.id || rawCanvas.id_canvas, // pastikan id tersedia
+};
+        const newCanvases = [...canvases, newCanvas];
+        setCanvases(newCanvases);
+
+        // hitung index baru
+        const newIndex = newCanvases.length - 1;
+        setCurrentCanvasIndex(newIndex);
+        // setCurrentCanvasId(newCanvas.id_canvas);
+        setCurrentCanvasId(newCanvas.id);
+        setNameError("");
+        setTotalCanvasCount(newCanvases.length);
+        setAddingCanvas(false);
+
+        // langsung tulis ke localStorage
+        localStorage.setItem("currentCanvasIndex", newIndex.toString());
+        // localStorage.setItem("currentCanvasId", newCanvas.id_canvas.toString());
+        localStorage.setItem("currentCanvasId", newCanvas.id.toString());
+      } else {
+        console.error("Failed to add the new canvas:", res.data.message);
+      }
+    })
+    .catch((err) => {
+      if (err.response?.status === 422) {
+        const errorMsg = err.response.data.errors?.name?.[0] || "Gagal validasi nama.";
+        setNameError(errorMsg);
+      } else {
         console.error("Error adding new canvas:", err);
-      });
+      }
+    });
+};
+
+
+
+  const cancelAddCanvas = () => {
+    setAddingCanvas(false);
+    setNewName(""); // Reset the input field
   };
 
   return (
@@ -182,25 +263,36 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
               onClick={() => handleCanvasClick(canvas, index)}
             >
               {editIndex === index ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onBlur={() => handleSaveName(index)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSaveName(index);
-                    }
-                  }}
-                  style={{
-                    fontSize: "1.1rem",
-                    border: "none",
-                    outline: "none",
-                    width: "calc(100% - 40px)",
-                  }}
-                  autoFocus
-                />
+                <div style={{ width: "100%" }}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newName}
+                    onChange={(e) => {
+                      setNewName(e.target.value);
+                      setNameError(""); // reset error saat user mengetik ulang
+                    }}
+                    onBlur={() => handleSaveName(index)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSaveName(index);
+                      }
+                    }}
+                    style={{
+                      fontSize: "1.1rem",
+                      border: "none",
+                      outline: "none",
+                      width: "calc(100% - 40px)",
+                    }}
+                    autoFocus
+                  />
+                  {/* Menampilkan error validasi jika ada */}
+                  {nameError && (
+                    <div style={{ color: "red", fontSize: "0.85rem", marginTop: "4px" }}>
+                      {nameError}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <span>{canvas.name || `Kanvas ${index + 1}`}</span>
               )}
@@ -273,7 +365,6 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
       )}
 
       {/* Add Canvas Input and Button Below Canvas List */}
-      {/* Add Canvas Button */}
       <div className="d-flex justify-content-center mt-3">
         {!addingCanvas ? (
           <SubmitButton onClick={handleAddCanvas} text="Tambah Canvas" />
@@ -287,7 +378,27 @@ const SidebarCanvas = ({ currentCanvasIndex, setCurrentCanvasIndex, currentCanva
               autoFocus
               style={{ fontSize: "1rem", padding: "8px 12px", width: "100%" }}
             />
+            {nameError && (
+              <div style={{ color: "red", fontSize: "0.85rem", marginTop: "4px" }}>
+                {nameError}
+              </div>
+            )}
             <SubmitButton onClick={saveNewCanvas} text="Simpan Canvas" />
+            <button
+              onClick={cancelAddCanvas}
+              style={{
+                marginTop: "8px",
+                padding: "8px 12px",
+                fontSize: "1rem",
+                backgroundColor: "#f0f0f0",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                cursor: "pointer",
+                color: "#666",
+              }}
+            >
+              Batal
+            </button>
           </div>
         )}
       </div>

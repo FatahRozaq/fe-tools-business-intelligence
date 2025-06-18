@@ -13,6 +13,8 @@ import DateRangeSelector from "./DateRangeSelector";
 import TopNSelector from "./TopNSelector";
 
 const SidebarData = ({
+  setCanvasData,
+  // setCanvasQuery,
   onBuildVisualization,
   selectedTable,
   onVisualizationTypeChange,
