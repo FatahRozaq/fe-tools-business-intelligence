@@ -69,7 +69,7 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
         <img src={logo} alt="Logo" width={10} height={10} />
       </div>
       <div className="d-flex flex-column">
-        <span className="fw-bold">Tools Dasbor Interaktif</span>
+        <span className="fw-bold">Tools Business Intelligence</span>
         <div className="d-flex justify-content-center align-items-center text-muted" style={{ cursor: 'pointer' }}>
           <span
             className="cursor-pointer"

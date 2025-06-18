@@ -147,6 +147,7 @@ useEffect(() => {
       });
   }
 }, [setCurrentCanvasIndex, setCurrentCanvasId]);
+
 useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isLoading) {
