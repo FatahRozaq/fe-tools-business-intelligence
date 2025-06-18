@@ -6,7 +6,7 @@ import logo from "../assets/img/Logo TBI.png";
 import config from "../config";
 import axios from "axios";
 
-const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases, currentCanvasId, setCurrentCanvasId,  totalCanvasCount, setTotalCanvasCount }) => {
+const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvases, currentCanvasId, setCurrentCanvasId }) => {
   const [totalCanvases, setTotalCanvases] = useState(0);
 
   useEffect(() => {
@@ -25,15 +25,9 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
       .get(`${config.API_BASE_URL}/api/kelola-dashboard/project/1/canvases`)
       .then((response) => {
         if (response.data.success) {
-          // Filter canvases where is_deleted is false
           const activeCanvases = response.data.canvases;
           setCanvases(activeCanvases);
-          setTotalCanvasCount(activeCanvases.length); // Update the total canvases count
-
-          // Log canvas index and id_canvas
-          activeCanvases.forEach((canvas, index) => {
-            console.log(`Canvas Index: ${index}, Canvas ID: ${canvas.id}`);
-          });
+          setTotalCanvases(activeCanvases.length);
         } else {
           console.error("Failed to fetch canvases:", response.data.message);
         }
@@ -41,37 +35,33 @@ const Header = ({ currentCanvasIndex, setCurrentCanvasIndex, setCanvases, canvas
       .catch((error) => {
         console.error("Error fetching canvases:", error);
       });
-  }, [setCanvases, setCurrentCanvasIndex, setCurrentCanvasId, setTotalCanvasCount]);
+  }, [setCanvases, setCurrentCanvasIndex, setCurrentCanvasId]);
 
   const goToNextCanvas = () => {
-  const newIndex = currentCanvasIndex + 1;
-  if (newIndex < canvases.length && canvases[newIndex]?.id) {
-    const newCanvasId = canvases[newIndex].id;
-    setCurrentCanvasIndex(newIndex);
-    setCurrentCanvasId(newCanvasId);
-    localStorage.setItem("currentCanvasIndex", newIndex);
-    localStorage.setItem("currentCanvasId", newCanvasId);
-    console.log("Canvas Index: ", newIndex);
-    console.log("Canvas ID: ", newCanvasId);
-  } else {
-    console.warn("Next canvas not ready or undefined:", canvases[newIndex]);
-  }
-};
-const goToPreviousCanvas = () => {
-  if (currentCanvasIndex > 0 && canvases.length > 0) {
-    const newIndex = currentCanvasIndex - 1;
-    const newCanvasId = canvases[newIndex].id;
+    if (currentCanvasIndex < totalCanvases - 1 && canvases.length > 0) {
+      const newIndex = currentCanvasIndex + 1;
+      const newCanvasId = canvases[newIndex].id;
+      
+      setCurrentCanvasIndex(newIndex);
+      setCurrentCanvasId(newCanvasId);
+      
+      localStorage.setItem("currentCanvasIndex", newIndex);
+      localStorage.setItem("currentCanvasId", newCanvasId);
+    }
+  };
 
-    setCurrentCanvasIndex(newIndex);
-    setCurrentCanvasId(newCanvasId);
-
-    localStorage.setItem("currentCanvasIndex", newIndex);
-    localStorage.setItem("currentCanvasId", newCanvasId);
-
-    console.log("Canvas Index: ", newIndex);
-    console.log("Canvas ID: ", newCanvasId);
-  }
-};
+  const goToPreviousCanvas = () => {
+    if (currentCanvasIndex > 0 && canvases.length > 0) {
+      const newIndex = currentCanvasIndex - 1;
+      const newCanvasId = canvases[newIndex].id;
+      
+      setCurrentCanvasIndex(newIndex);
+      setCurrentCanvasId(newCanvasId);
+      
+      localStorage.setItem("currentCanvasIndex", newIndex);
+      localStorage.setItem("currentCanvasId", newCanvasId);
+    }
+  };
 
   return (
     <header className="header fixed-top d-flex align-items-center p-3 bg-white shadow">
@@ -86,17 +76,17 @@ const goToPreviousCanvas = () => {
             onClick={goToPreviousCanvas}
             style={{ padding: "0 10px", fontSize: "20px" }}
           >
-            &#8592;
+            ←
           </span>
           <span id="menu-canvas">
-            Kanvas {currentCanvasIndex + 1} dari {totalCanvasCount}
+            Kanvas {totalCanvases > 0 ? currentCanvasIndex + 1 : 0} dari {totalCanvases}
           </span>
           <span
             className="cursor-pointer"
             onClick={goToNextCanvas}
             style={{ padding: "0 10px", fontSize: "20px" }}
           >
-            &#8594;
+            →
           </span>
           <span className="mx-2">|</span>
 
@@ -109,7 +99,7 @@ const goToPreviousCanvas = () => {
 
           <span id="menu-visualisasi" className="cursor-pointer d-flex align-items-center">
             <AiOutlinePieChart className="me-1" />
-            Konfigurasi
+            Pilih Visualisasi
           </span>
 
           <span className="mx-2">|</span>

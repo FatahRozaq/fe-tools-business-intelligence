@@ -28,7 +28,6 @@ const Sidebar = () => {
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [canvases, setCanvases] = useState([]);
   const [currentCanvasId, setCurrentCanvasId] = useState(0);
-  const [totalCanvasCount, setTotalCanvasCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [processingConnections, setProcessingConnections] = useState({});
 
