@@ -15,7 +15,7 @@ const SidebarDatasource = ({ onTambahDatasource }) => {
       </div>
       <div className="text-center">
         <button
-          type="submit"
+          type="button"
           className="btn d-flex align-items-center justify-content-center py-2 w-100 h-75 mt-3"
           style={{
             backgroundColor: "#000080",
@@ -23,10 +23,10 @@ const SidebarDatasource = ({ onTambahDatasource }) => {
             borderRadius: "0.375rem",
           }}
           onClick={onTambahDatasource}
-          id="menu-tambah-datasource"
+          id="btn-tambah-datasource-initial"
         >
           <FaPlus className="me-2" />
-          Tambah Datasources
+          Tambah Datasource
         </button>
       </div>
     </div>

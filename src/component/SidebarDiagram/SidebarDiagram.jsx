@@ -18,7 +18,6 @@ const SidebarDiagram = ({
   onVisualizationTypeChange,
   onVisualizationConfigChange,
   selectedVisualization,
-  style,
 }) => {
   const [activePicker, setActivePicker] = useState(null);
   const [visualizationSettings, setVisualizationSettings] = useState({ ...DEFAULT_CONFIG });
@@ -125,7 +124,7 @@ const SidebarDiagram = ({
   }
 
   return (
-    <div id="sidebar-diagram" className="sidebar-2" style={style}>
+    <div id="sidebar-diagram" className="sidebar-2">
       <div className="sub-title">
         <HiOutlineChartPie size={48} className="text-muted" />
         <span className="h5 mb-0 fw-light">Diagram</span>

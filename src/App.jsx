@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
+import {AiOutlineLogout} from "react-icons/ai";
 import "./assets/css/dashboard.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -16,7 +17,6 @@ import 'primereact/resources/primereact.min.css';
 import VisualisasiChart from "./component/Visualiaze";
 import Canvas from "./component/Canvas";
 import axios from "axios";
-import { AiOutlineLogout } from "react-icons/ai";
 
 function App() {
   const [canvasData, setCanvasData] = useState([]);
@@ -104,15 +104,10 @@ function App() {
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex} // Pass setter to Header
       /> */}
-      <Header
-      onLogout={handleLogout}
-      userAccessLevel={userAccessLevel}
-      />
       <div className="main-container">
         <Sidebar 
           setCanvasData={setCanvasData} 
-          setCanvasQuery={setCanvasQuery}
-          userAccessLevel={userAccessLevel}
+          setCanvasQuery={setCanvasQuery} 
         />
         {/* <Canvas currentCanvasIndex={currentCanvasIndex}/> */}
         {/* <Canvas 

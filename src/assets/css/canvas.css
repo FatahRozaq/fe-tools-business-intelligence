@@ -77,17 +77,23 @@
 
 /* Menyembunyikan scrollbar tapi tetap bisa scroll */
 .visualization-content {
+  /* PENTING: Aktifkan scroll */
+  overflow: auto;
+  
   /* Firefox */
-  scrollbar-width: none;
+  /* scrollbar-width: none; */
   
   /* Internet Explorer 10+ */
-  -ms-overflow-style: none;
+  /* -ms-overflow-style: none; */
+  
+  height: calc(100% - 40px);
+  box-sizing: border-box;
 }
 
-/* WebKit browsers (Chrome, Safari, Edge) */
-/* .visualization-content::-webkit-scrollbar {
-  display: none;
-} */
+/* WebKit browsers - HAPUS KOMENTAR INI */
+.visualization-content::-webkit-scrollbar {
+  display: block;
+}
 
 .visualization-header {
   background-color: #ffffff; /* Putih bersih untuk header */

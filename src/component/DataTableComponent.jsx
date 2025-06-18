@@ -6,13 +6,21 @@ import { FilterMatchMode } from "primereact/api";
 import axios from "axios";
 import config from "../config";
 
-const DataTableComponent = ({ data, query }) => {
+const DataTableComponent = ({ 
+  data, 
+  query, 
+  visualizationType,
+  onVisualizationTypeChange // TAMBAHKAN PROP INI
+}) => {
   const [filters, setFilters] = React.useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   });
   const [queryResult, setQueryResult] = useState(null);
   const [selectedText, setSelectedText] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  
+  // SYNC dengan prop dari parent
+  const activeVisualizationType = visualizationType || "table";
 
   useEffect(() => {
     if (query) {
@@ -52,6 +60,54 @@ const DataTableComponent = ({ data, query }) => {
     }
   }, [query]);
 
+  const handleVisualizationTypeChange = (newType) => {
+    // PANGGIL callback ke parent component
+    if (onVisualizationTypeChange) {
+      onVisualizationTypeChange(newType);
+    }
+  };
+
+  const renderChartControls = () => {
+    const chartOptionsList = [
+      { type: "bar", label: "Batang" }, 
+      { type: "line", label: "Line" },
+      { type: "pie", label: "Pie" }, 
+      { type: "donut", label: "Donut" },
+      { type: "", label: "Tabel" }, // UBAH dari "" ke "table"
+      { type: "card", label: "Card" }
+    ];
+    return (
+      <div className="chart-controls flex mb-4 gap-2">
+        {chartOptionsList.map((option) => (
+          <button
+            key={option.type}
+            className={`px-3 py-1 rounded text-sm ${
+              activeVisualizationType === option.type 
+                ? "bg-blue-600 text-white" 
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+            onClick={() => handleVisualizationTypeChange(option.type)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // TAMBAHKAN KONDISI RENDER BERDASARKAN TYPE
+  if (activeVisualizationType !== "table") {
+    return (
+      <div className="p-4 text-center">
+        {renderChartControls()}
+        <div className="text-gray-500">
+          Silakan pilih "Tabel" untuk melihat data dalam bentuk tabel, 
+          atau gunakan komponen Visualisasi untuk chart lainnya.
+        </div>
+      </div>
+    );
+  }
+
   const renderHeader = () => {
     return (
       <div className="table-header-container">
@@ -86,16 +142,16 @@ const DataTableComponent = ({ data, query }) => {
           field={key}
           header={key.charAt(0).toUpperCase() + key.slice(1)}
           sortable
-          style={{ minWidth: "150px" }} // Reduced width for columns
-          headerStyle={{ padding: "0.5rem", fontSize: "0.85rem" }} // Compact header
+          style={{ minWidth: "150px" }}
+          headerStyle={{ padding: "0.5rem", fontSize: "0.85rem" }}
           bodyStyle={{
             maxWidth: "150px",
             whiteSpace: "nowrap",
             overflowX: "hidden",
             textOverflow: "ellipsis",
             cursor: "pointer",
-            padding: "0.3rem", // Reduced padding
-            fontSize: "0.8rem", // Smaller font size
+            padding: "0.3rem",
+            fontSize: "0.8rem",
           }}
           body={(rowData) => (
             <div onDoubleClick={() => handleDoubleClick(rowData[key])}>
@@ -112,6 +168,7 @@ const DataTableComponent = ({ data, query }) => {
 
   return (
     <div className="card compact-table-container" style={{ height: "100%", display: "flex", flexDirection: "column", border: "none", boxShadow: "none" }}>
+      {renderChartControls()}
       <DataTable
         value={queryResult || data}
         paginator
@@ -121,11 +178,11 @@ const DataTableComponent = ({ data, query }) => {
         onFilter={(e) => setFilters(e.filters)}
         emptyMessage="No data found."
         tableStyle={{ width: "100%" }}
-        size="small" // Set small size for the entire table
-        scrollable // Enable scrolling if needed
-        scrollHeight="flex" // Use flex for dynamic height
+        size="small"
+        scrollable
+        scrollHeight="flex"
         className="compact-data-table"
-        rowHover // Highlight rows on hover
+        rowHover
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         paginatorClassName="compact-paginator"
         currentPageReportTemplate="{first} - {last} of {totalRecords}"
@@ -144,7 +201,6 @@ const DataTableComponent = ({ data, query }) => {
         </div>
       )}
 
-      {/* Styles for compact table */}
       <style jsx>{`
         .compact-data-table .p-datatable-wrapper {
           font-size: 0.8rem;
@@ -176,7 +232,6 @@ const DataTableComponent = ({ data, query }) => {
           box-shadow: none;
         }
         
-        /* Remove all PrimeReact blue focus and hover styles */
         .p-datatable .p-datatable-tbody > tr > td:focus,
         .p-datatable .p-datatable-thead > tr > th:focus,
         .p-inputtext:focus,
@@ -190,7 +245,6 @@ const DataTableComponent = ({ data, query }) => {
           border-color: transparent !important;
         }
         
-        /* Remove blue rounded borders/outlines */
         .p-component:focus,
         .p-component-overlay-enter,
         .p-datatable:focus,
@@ -204,14 +258,12 @@ const DataTableComponent = ({ data, query }) => {
           border-color: transparent !important;
         }
         
-        /* Remove any highlight colors on pagination active items */
         .p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
           background-color: #f0f0f0 !important;
           color: #333 !important;
           border-color: transparent !important;
         }
         
-        /* Remove any hover effects */
         .p-datatable .p-datatable-tbody > tr:hover,
         .p-paginator button:hover,
         .p-paginator .p-paginator-pages .p-paginator-page:hover {
@@ -219,7 +271,6 @@ const DataTableComponent = ({ data, query }) => {
           color: inherit !important;
         }
         
-        /* Additional styles to remove any borders and styling */
         .p-datatable .p-datatable-thead > tr > th,
         .p-datatable .p-datatable-tbody > tr > td {
           border: none !important;
@@ -234,7 +285,7 @@ const DataTableComponent = ({ data, query }) => {
   );
 };
 
-// Modal styles
+// Modal styles (unchanged)
 const modalStyles = {
   position: "fixed",
   top: 0,

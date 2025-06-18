@@ -97,6 +97,8 @@ const RegisterPage = ({ onAuthSuccess, onSwitchLogin }) => {
         if (response.data.data?.token) {
           localStorage.setItem('token', response.data.data.token);
           localStorage.setItem('user', JSON.stringify(response.data.data.user));
+          localStorage.setItem('token_type', response.data.data.token_type);
+          localStorage.setItem('access', response.data.data.access);
         }
 
         if (onAuthSuccess) {
