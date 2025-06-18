@@ -494,7 +494,7 @@ const SidebarData = ({
       {showFooter && (<FooterBar filters={filters} setFilters={setFilters} handleApplyFilters={handleApplyFilters} handleToggleFooter={handleToggleFooter} availableTables={tables} currentTable={selectedTable || ''} />)}
       <style jsx>{`
         .join-badge { background-color: #e3f2fd; color: #1565c0; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; text-transform: capitalize; }
-        .sidebar-2 { max-height: 100vh; overflow-y: auto; padding-bottom: 60px; margin-top: 15px;}
+        .sidebar-2 { max-height: 100vh; overflow-y: auto; padding-bottom: 120px; margin-top: 15px;}
         .drop-target { border: 2px dashed transparent; border-radius: 4px; transition: all 0.2s; }
         .drag-over { border: 2px dashed #2196f3; background-color: rgba(33, 150, 243, 0.1); }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; }

@@ -322,21 +322,20 @@ const Sidebar = () => {
 
     const lowerCaseQuery = searchQuery.toLowerCase();
     const filteredGroupedEntries = Object.entries(groupedTables)
-      .map(([prefix, groupData]) => {
-        const groupNameMatches = prefix.toLowerCase().includes(lowerCaseQuery);
-        const matchingTables = groupData.tables.filter(table =>
-          table.table_name.toLowerCase().includes(lowerCaseQuery)
-        );
+  .map(([prefix, groupData]) => {
+    const matchingTables = groupData.tables.filter(table =>
+      table.table_name.toLowerCase().includes(lowerCaseQuery)
+    );
 
-        if (groupNameMatches || matchingTables.length > 0) {
-          return [prefix, {
-            ...groupData,
-            tables: groupNameMatches ? groupData.tables : matchingTables
-          }];
-        }
-        return null;
-      })
-      .filter(Boolean);
+    if (matchingTables.length > 0) {
+      return [prefix, {
+        ...groupData,
+        tables: matchingTables
+      }];
+    }
+    return null;
+  })
+  .filter(Boolean);
 
     return (
       <div id="sidebar" className="sidebar">
@@ -445,7 +444,6 @@ const Sidebar = () => {
                           <div className="column-container">
                             {columns[table.full_name] ? (
                               columns[table.full_name]
-                                .filter(col => col.name.toLowerCase().includes(lowerCaseQuery))
                                 .map((col, colIndex) => (
                                 <div
                                   key={colIndex}
@@ -570,6 +568,7 @@ const Sidebar = () => {
           overflow-y: auto;
           -ms-overflow-style: none;
           scrollbar-width: none;
+          padding-bottom: 120px;
         }
         .sidebar::-webkit-scrollbar {
           display: none;

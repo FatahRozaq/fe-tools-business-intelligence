@@ -26,6 +26,7 @@ const Canvas = ({
   const [isLoading, setIsLoading] = useState(true); // Loading state untuk data awal
   const [pendingSaveTimeouts, setPendingSaveTimeouts] = useState({});
   const [totalCanvases, setTotalCanvases] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   const zoomSpeed = 0.005;
   const containerRef = useRef(null);
@@ -127,6 +128,7 @@ useEffect(() => {
     setCurrentCanvasIndex(parseInt(savedIndex));
     setCurrentCanvasId(parseInt(savedCanvasId));
   } else {
+    setIsLoading(true)
     // Panggil API dengan Axios
     axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/first-canvas`)
       .then((response) => {
@@ -192,10 +194,13 @@ useEffect(() => {
   // Fungsi untuk menyimpan visualisasi ke API (dengan workaround untuk config)
   const saveVisualizationToAPI = useCallback((visualization) => {
   // Validasi dasar sebelum mengirim
+  setIsSaving(true);
   if (!visualization.query || !visualization.type || !visualization.id_datasource) {
+      setIsSaving(false);
       console.warn("Attempted to save visualization with missing required fields (query, type, id_datasource).", visualization);
       return Promise.reject("Missing required fields");
   }
+  
 
   // Pastikan config adalah objek sebelum stringify
   const configObject = typeof visualization.config === 'object' && visualization.config !== null
@@ -241,7 +246,7 @@ useEffect(() => {
       console.log("Visualization saved response:", response.data);
       // Cek status sukses dari response API
       if (response.data.status !== 'success') {
-        
+        setIsSaving(false);
       }
       
       // Periksa apakah data dan id_visualization ada dalam response
@@ -314,6 +319,7 @@ useEffect(() => {
           error.response ? { status: error.response.status, data: error.response.data } : error.message
       );
       // Lemparkan kembali error agar pemanggil tahu terjadi kegagalan
+      setIsSaving(false);
       throw error;
     });
 }, [selectedVisualization, onVisualizationSelect, setVisualizations]); // Tambahkan setVisualizations sebagai dependensi
@@ -369,8 +375,7 @@ useEffect(() => {
       const newQuery = query;
 
       // AMBIL ID DATASOURCE DARI PAYLOAD, BUKAN DARI `data`
-      // Baris sebelumnya: const datasourceId = data.id_datasource || 1;
-      const datasourceId = newVisualizationPayload.id_datasource || 1; // <<< PERUBAHAN DI SINI
+      const datasourceId = data.id_datasource || 1;
 
       const currentCanvasId = canvases[currentCanvasIndex]?.id;
 
@@ -868,33 +873,40 @@ useEffect(() => {
 
   // Render Utama Canvas
   return (
-    <main className="canvas-container" ref={containerRef}>
-      <div
-        className="canvas" // Class untuk styling canvas area
-        style={{
-          transform: `scale(${scale})`, // Terapkan zoom
-          transformOrigin: "center", // Titik asal zoom (pojok kiri atas) - bisa diubah ke 'center center'
-          position: "relative", // Penting agar positioning absolute children bekerja
-          minWidth: "1200px",
-          minHeight: "800px", // Tinggi minimal agar ada area scroll
-          overflow: "visible", // Biarkan visualisasi terlihat di luar batas jika perlu (atau auto/scroll)
-          border: "1px solid #d9d9d9" // Border opsional
-        }}
-        onClick={handleCanvasClick} // Handler klik untuk unselect
-      >
-        {/* Tampilan jika tidak ada visualisasi (setelah loading selesai) */}
-        {visualizations.length === 0 && !isLoading ? (
-          <div className="empty-state">
-            <p>Tidak ada visualisasi di canvas.</p>
-            <p>Untuk menambahkan, atur data dan pilih tipe visualisasi dari sidebar.</p>
-          </div>
-        ) : (
-          // Render semua visualisasi jika ada
-          renderVisualizations()
-        )}
+  <main className="canvas-container" ref={containerRef}>
+    {/* Overlay abu-abu saat sedang dalam proses */}
+    {isSaving || isLoading ? (
+      <div className="overlay active">
+        <div className="spinner"></div>
+        <p>Processing...</p>
       </div>
-    </main>
-  );
+    ) : null}
+
+    <div
+      className="canvas"
+      style={{
+        transform: `scale(${scale})`,
+        transformOrigin: "center",
+        position: "relative",
+        minWidth: "1200px",
+        minHeight: "800px",
+        overflow: "visible",
+        border: "1px solid #d9d9d9",
+        pointerEvents: isSaving ? 'none' : 'auto' // Nonaktifkan interaksi saat menyimpan
+      }}
+      onClick={handleCanvasClick}
+    >
+      {visualizations.length === 0 && !isLoading ? (
+        <div className="empty-state">
+          <p>Tidak ada visualisasi di canvas.</p>
+          <p>Untuk menambahkan, atur data dan pilih tipe visualisasi dari sidebar.</p>
+        </div>
+      ) : (
+        renderVisualizations()
+      )}
+    </div>
+  </main>
+);
 };
 
 export default Canvas;
