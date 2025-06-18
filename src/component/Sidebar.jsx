@@ -122,6 +122,23 @@ const Sidebar = () => {
     setSelectedVisualization(null);
   };
 
+  useEffect(() => {
+  if (canvases.length > 0) {
+    const savedIndex = parseInt(localStorage.getItem("currentCanvasIndex"));
+    const savedId = parseInt(localStorage.getItem("currentCanvasId"));
+
+    const indexMatch = canvases.findIndex(c => c.id === savedId);
+    if (!isNaN(savedIndex) && !isNaN(savedId) && indexMatch !== -1) {
+      setCurrentCanvasIndex(indexMatch); // gunakan index yang valid dari daftar baru
+      setCurrentCanvasId(savedId);
+    } else {
+      // fallback jika index tidak valid
+      setCurrentCanvasIndex(0);
+      setCurrentCanvasId(canvases[0].id);
+    }
+  }
+}, [canvases]);
+
   const handleSaveSuccess = () => {
     setShowAddDatasource(false);
     fetchAllTables();
