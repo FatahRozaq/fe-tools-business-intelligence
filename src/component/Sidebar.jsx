@@ -489,7 +489,7 @@ const Sidebar = () => {
         canvases={canvases}
         setCanvases={setCanvases}
       />
-      <SidebarData
+      {/* <SidebarData
         setCanvasData={setCanvasData}
         selectedTable={selectedTable}
         onBuildVisualization={handleBuildVisualization}
@@ -497,7 +497,7 @@ const Sidebar = () => {
         setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
         canvases={canvases}
         setCanvases={setCanvases}
-      />
+      /> */}
 
       {/* <SidebarData
         setCanvasData={setCanvasData}
