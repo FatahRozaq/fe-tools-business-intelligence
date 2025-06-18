@@ -158,7 +158,14 @@ const Sidebar = () => {
   };
 
   const handleQuerySubmit = (query) => {
-    setCanvasQuery(query);
+    const payload = {
+      id_datasource: 1, // <<< ASUMSI PENTING!
+      type: 'sql',      // Flag untuk menandakan ini dari editor query
+    };
+
+    setNewVisualizationPayload(payload); // <<< PENTING: Atur payload baru
+    setCanvasQuery(query);               // Atur query seperti sebelumnya
+    setCanvasData({});                   // Atur data ke objek kosong agar lolos cek `if(data)`
     setVisualizationConfig({ ...DEFAULT_CONFIG });
     setAddNewVisualization(true);
     setSelectedVisualization(null);

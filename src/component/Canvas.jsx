@@ -355,64 +355,63 @@ useEffect(() => {
 
   // useEffect untuk menambahkan visualisasi baru ketika props berubah
   useEffect(() => {
-  // Hanya jalan jika ada query, tipe visualisasi, dan data datasource
-  if (query && visualizationType && data && newVisualizationPayload) { // Cek payload baru
+  // KONDISI SEBELUMNYA: if (query && visualizationType && data && newVisualizationPayload)
+  // Ganti dengan yang di bawah ini. Kita tidak memerlukan `data` sebagai pemicu.
+  if (query && visualizationType && newVisualizationPayload) {
       const existingVisualization = visualizations.find(
         v => v.query === query && v.type === visualizationType
       );
 
-    // Jika belum ada, buat visualisasi baru
     if (!existingVisualization) {
-      const tempId = generateUniqueId(); // Tentukan ID sementara
+      const tempId = generateUniqueId();
       const newTitle = visualizationConfig?.title || `Visualisasi ${visualizationType}`;
       const newType = visualizationType;
       const newQuery = query;
-      const datasourceId = data.id_datasource || 1; // Pastikan ada id_datasource
+
+      // AMBIL ID DATASOURCE DARI PAYLOAD, BUKAN DARI `data`
+      // Baris sebelumnya: const datasourceId = data.id_datasource || 1;
+      const datasourceId = newVisualizationPayload.id_datasource || 1; // <<< PERUBAHAN DI SINI
+
       const currentCanvasId = canvases[currentCanvasIndex]?.id;
 
       if (!currentCanvasId) {
         console.error("Canvas ID is not available.");
-        return; // Return early if canvas ID is not available
+        return;
       }
-      
 
       const newVisualization = {
         id: tempId,
-        id_canvas: currentCanvasId, // Asumsi canvas ID 1
-        id_datasource: datasourceId, // Penting! Tambahkan id_datasource
+        id_canvas: currentCanvasId,
+        id_datasource: datasourceId, // <<< Gunakan datasourceId yang benar
         query: newQuery,
         type: newType,
         title: newTitle,
-        config: visualizationConfig || {}, // Gunakan config dari props atau objek kosong
-        x: 20, // Posisi default X
-        y: 20, // Posisi default Y
-        width: 600, // Lebar default
-        height: 400, // Tinggi default
+        config: visualizationConfig || {},
+        x: 20,
+        y: 20,
+        width: 600,
+        height: 400,
         builderPayload: newVisualizationPayload,
-        requestPayload: { // Buat requestPayload yang stabil
+        requestPayload: {
            id_canvas: currentCanvasId,
-           id_datasource: datasourceId,
+           id_datasource: datasourceId, // <<< Gunakan datasourceId yang benar
            query: newQuery,
            visualizationType: newType,
            name: newTitle
         }
       };
 
-      console.log("Adding new visualization to state:", newVisualization);
-      // Tambahkan visualisasi baru ke state
+      console.log("Adding new visualization to state (from SQL Query):", newVisualization);
       setVisualizations(prev => [...prev, newVisualization]);
-      // Langsung simpan visualisasi baru ke API
       saveVisualizationToAPI(newVisualization).catch(error => {
           console.error("Failed to save newly created visualization immediately:", error);
-          // Pertimbangkan: Hapus dari state jika save awal gagal? Atau biarkan dengan notifikasi?
-          // setVisualizations(prev => prev.filter(v => v.id !== tempId));
       });
     } else {
         console.log("Visualization with same query and type already exists. Skipping add.");
     }
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI, newVisualizationPayload]); // Tambahkan data.id_datasource dan saveVisualizationToAPI
+}, [query, visualizationType, visualizationConfig, saveVisualizationToAPI, newVisualizationPayload]);
 
   // useEffect untuk mengupdate config visualisasi yang dipilih
   useEffect(() => {
