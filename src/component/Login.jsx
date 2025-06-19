@@ -73,6 +73,7 @@ const LoginPage = ({ onAuthSuccess, onSwitchRegister }) => {
         localStorage.setItem('token', response.data.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.data.user));
         localStorage.setItem('token_type', response.data.data.token_type);
+        localStorage.setItem('access', response.data.data.access);
 
         // Set default axios header untuk request selanjutnya
         axios.defaults.headers.common['Authorization'] = `${response.data.data.token_type} ${response.data.data.token}`;

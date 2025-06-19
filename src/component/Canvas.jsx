@@ -20,6 +20,7 @@ const Canvas = ({
   currentCanvasId,
   setCurrentCanvasId,
   newVisualizationPayload,
+  userAccessLevel
 }) => {
   const [scale, setScale] = useState(0.75);
   const [visualizations, setVisualizations] = useState([]);
@@ -514,6 +515,11 @@ useEffect(() => {
 
   // useEffect untuk setup interact.js (drag & resize)
   useEffect(() => {
+    if (userAccessLevel === 'view') {
+        interact('.visualization-container').unset();
+        return;
+    }
+
     // Jangan setup jika masih loading atau belum ada visualisasi
     if (isLoading || visualizations.length === 0) {
         // Jika ada instance interact yg tersisa dari render sebelumnya, coba unset
@@ -705,7 +711,7 @@ useEffect(() => {
       // interact('.visualization-container').unset();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visualizations, isLoading, onVisualizationSelect, queueSaveVisualization]); // Dependensi penting untuk re-setup interact
+  }, [visualizations, isLoading, onVisualizationSelect, queueSaveVisualization, userAccessLevel]); // Dependensi penting untuk re-setup interact
 
   // Callback untuk menghapus visualisasi
   const handleRemoveVisualization = useCallback((id) => {
@@ -804,7 +810,8 @@ useEffect(() => {
   {/* Header Visualisasi */}
   <div className="visualization-header" style={{ userSelect: 'none', cursor: 'inherit' }}>
     <h3>{viz.title || `Visualisasi ${viz.type}`}</h3>
-    <button
+    {userAccessLevel !== 'view' && (
+      <button
       className="remove-button"
       onClick={(e) => {
         e.stopPropagation(); 
@@ -815,6 +822,7 @@ useEffect(() => {
     >
       ×
     </button>
+    )}
   </div>
 
   {/* Konten Visualisasi */}
