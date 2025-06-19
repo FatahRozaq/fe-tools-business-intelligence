@@ -5,10 +5,16 @@ import config from "../config"; // Assuming this path is correct
 import { useDebouncedCallback } from 'use-debounce'; // IMPORT use-debounce
 
 // Card Component for displaying single value
-const CardComponent = ({ data, labelKey, valueKey, visualizationConfig }) => {
+const CardComponent = ({ data, labelKey, valueKey, visualizationConfig, userAccessLevel}) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
   }
+
+  const [userAccessLevel, setUserAccessLevel] = useState('view');
+  useEffect(() => {
+      const access = localStorage.getItem('access') || 'view' ;
+      setUserAccessLevel(access);
+    }, []);
 
   // Get the first row's value
   const firstRow = data[0];
@@ -782,20 +788,24 @@ const transformGroupedData = (rawData, labelKey, categoryKey, valueKey) => {
   
   return (
     <div className="chart-controls mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Jenis Visualisasi:
-      </label>
-      <select
-        value={currentSelection}
-        onChange={(e) => handleVisualizationTypeChange(e.target.value)}
-        className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-      >
-        {chartOptionsList.map((option) => (
-          <option key={option.type} value={option.type}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      {userAccessLevel !== 'view' && (
+        <>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Jenis Visualisasi:
+        </label>
+        <select
+          value={currentSelection}
+          onChange={(e) => handleVisualizationTypeChange(e.target.value)}
+          className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        >
+          {chartOptionsList.map((option) => (
+            <option key={option.type} value={option.type}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        </>
+      )}
     </div>
   );
 };

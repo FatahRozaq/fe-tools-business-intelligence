@@ -45,20 +45,6 @@ const Sidebar = () => {
   useEffect(() => {
     const access = localStorage.getItem('access') || 'view' ;
     setUserAccessLevel(access);
-    // const userString = localStorage.getItem('user');
-    // if (userString) {
-    //   try {
-    //     const userData = JSON.parse(userString);
-    //     // Cari akses untuk proyek ID 1 (sesuai asumsi)
-    //     const projectAccess = userData.projects_access?.find(acc => acc.id_project === 1);
-    //     // Set level akses, default 'view' jika tidak ditemukan
-    //     const access = projectAccess ? projectAccess.access : 'view';
-    //     setUserAccessLevel(access);
-    //   } catch (e) {
-    //     console.error("Gagal mem-parsing data pengguna dari localStorage", e);
-    //     setUserAccessLevel('view'); // Fallback ke level paling restriktif jika ada error
-    //   }
-    //}
   }, []);
 
   const fetchAllTables = () => {
