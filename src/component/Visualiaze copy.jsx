@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "react-apexcharts";
 import axios from "axios";
-import config from "../config"; // Pastikan path ini benar
-import { useDebouncedCallback } from 'use-debounce';
+import config from "../config"; // Assuming this path is correct
+import { useDebouncedCallback } from 'use-debounce'; // IMPORT use-debounce
 
-// Card Component untuk menampilkan nilai tunggal
+// Card Component for displaying single value
 const CardComponent = ({ data, labelKey, valueKey, visualizationConfig }) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
   }
 
+  // Get the first row's value
   const firstRow = data[0];
   const label = firstRow[labelKey];
   const value = firstRow[valueKey];
@@ -103,19 +104,22 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   const [fetchedData, setFetchedData] = useState(null);
   const [visualizationData, setVisualizationData] = useState(null);
   const [status, setStatus] = useState({ loading: true, error: null });
-  
   const [savedVisualizationId, setSavedVisualizationId] = useState(requestPayload?.id_visualization || null);
-  const [activeVisualizationType, setActiveVisualizationType] = useState(
+   const [activeVisualizationType, setActiveVisualizationType] = useState(
     visualizationType || requestPayload?.visualizationType || "bar"
   );
-  // Ref ini akan melacak apakah ini adalah render pertama
-  const isInitialMount = useRef(true);
+
+  const skipConfigUpdateRef = useRef(true);
   
   useEffect(() => {
     if (visualizationType) {
       setActiveVisualizationType(visualizationType);
     }
   }, [visualizationType]);
+
+  const isInitialMount = useRef(true);
+  
+  
 
   const getTextStyleProperties = useCallback((styleName) => {
     const properties = {
@@ -130,6 +134,8 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     }
     return properties;
   }, []);
+
+  
 
   const getChartOptions = useCallback((chartType, categories, chartColors) => {
     const vc = visualizationConfig || {}; 
@@ -289,9 +295,10 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
             axisBorder: { show: true, color: vc.gridColor || "#E0E0E0" },
             axisTicks: { show: true, color: vc.gridColor || "#E0E0E0" }
         };
-        options.yaxis = {
+        options.yaxis = { // Y-axis labels come from series names in heatmap
             labels: {
                 style: { fontSize: `${vc.yAxisFontSize || 12}px`, fontFamily: vc.yAxisFontFamily || "Arial", colors: vc.yAxisFontColor || "#000000" },
+                // No specific formatter needed here as series names are used by default.
             },
         };
         options.plotOptions = {
@@ -300,7 +307,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
                 radius: vc.heatmapRadius || 0,
                 enableShades: vc.heatmapEnableShades !== undefined ? vc.heatmapEnableShades : true,
                 colorScale: {
-                    ranges: vc.heatmapColorRanges || [],
+                    ranges: vc.heatmapColorRanges || [], // User can define vc.heatmapColorRanges in config
                 },
                  useFillColorAsStroke: vc.heatmapUseFillColorAsStroke || false
             }
@@ -313,7 +320,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
                 colors: vc.heatmapValueFontColor ? [vc.heatmapValueFontColor] : (vc.valueFontColor ? [vc.valueFontColor] : ["#333333"])
             };
         }
-    } else {
+    } else { // For bar, line, scatter, area etc.
       options.xaxis = {
         categories: categories,
         title: {
@@ -326,7 +333,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       };
       options.yaxis = {
         title: {
-            text: vc.valueTitle || "", offsetY: 0,
+            text: vc.valueTitle || "", offsetY: 0, // Provide a way to set Y-axis title
             style: { fontSize: `${vc.valueTitleFontSize || 14}px`, fontWeight: getTextStyleProperties(vc.valueTitleTextStyle).fontWeight, fontFamily: vc.valueTitleFontFamily || "Arial", fontStyle: getTextStyleProperties(vc.valueTitleTextStyle).fontStyle, color: vc.valueTitleFontColor || "#000000" },
         },
         labels: {
@@ -343,7 +350,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
           };
           delete options.dataLabels.offsetY;
           delete options.dataLabels.offsetX;
-        } else {
+        } else { // line, scatter, area
           if (vc.valuePosition === "top") options.dataLabels.offsetY = -10;
           else if (vc.valuePosition === "bottom") options.dataLabels.offsetY = 10;
           else options.dataLabels.offsetY = 0;
@@ -355,7 +362,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         options.stroke.width = vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (vc.lineWidth || 4);
         options.markers = { size: vc.markerSize || 5, hover: { sizeOffset: vc.markerHoverSizeOffset || 2 } };
       } else if (chartType === "scatter") {
-        options.stroke.width = vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (vc.markerBorderWidth || 1);
+        options.stroke.width = vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (vc.markerBorderWidth || 1); // For marker borders
         options.markers = { size: vc.markerSize || 6, hover: { sizeOffset: vc.markerHoverSizeOffset || 2 } };
       }
     }
@@ -377,11 +384,11 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
 
     const loadRawData = async () => {
       try {
+        // Cek jika ada id_visualization di payload, jika tidak, mungkin tidak perlu fetch
         if (!requestPayload.id_visualization && !requestPayload.query) {
             setStatus({ loading: false, error: "Tidak ada data untuk ditampilkan." });
             return;
         }
-
         const res = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/visualisasi-data`, requestPayload);
         const data = res.data?.data;
 
@@ -390,10 +397,10 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         }
         const [firstRow] = data;
         const keys = Object.keys(firstRow);
-        if (keys.length < 1) {
-        if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
-             throw new Error("Data harus memiliki minimal dua kolom untuk tipe chart ini.");
-        }
+        if (keys.length < 1) { // Card can have 1 col, table can have 1, others need >= 2
+            if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
+                 throw new Error("Data harus memiliki minimal dua kolom (label dan setidaknya satu nilai) untuk tipe chart ini.");
+            }
         }
         
         setFetchedData({ raw: data, keys: keys });
@@ -407,215 +414,273 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       }
     };
     loadRawData();
-  }, [requestPayload]); // Hanya bergantung pada requestPayload
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestPayload]);
 
-  const debouncedSaveOrUpdateVisualization = useDebouncedCallback(
-    async (vizId, type, optionsToSave, colorsToSave, currentQuery, configToSave) => {
-        const payload = {
-            visualization_type: type,
-            query: currentQuery, 
-            config: { ...configToSave, colors: colorsToSave },
-        };
-        // Hapus options jika tidak relevan untuk tipe visualisasi
-        if (type === "table" || type === "card") {
-            delete payload.config.visualizationOptions;
-        } else {
-            payload.config.visualizationOptions = optionsToSave;
-        }
-
+  const debouncedUpdateVisualization = useDebouncedCallback(
+    async (vizId, type, optionsToSave, colorsToSave, currentQuery, ) => {
+        if (!vizId) return;
         try {
-                const savePayload = {
-                    ...payload,
-                    id_canvas: currentCanvasId, 
-                    id_datasource: requestPayload.id_datasource || 1,
-                    name: requestPayload.name || configToSave?.title || "Visualisasi Baru",
-                };
-                const saveResponse = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/save-visualization`, savePayload);
-                if (saveResponse.data?.data?.id) {
-                    // Simpan ID baru yang didapat dari server ke state
-                    setSavedVisualizationId(saveResponse.data.data.id);
-                }
-            
+            const configPayload = {
+                ...visualizationConfig, 
+                colors: colorsToSave,
+            };
+
+            if (type && type !== "table" && type !== "card" && optionsToSave) {
+                configPayload.visualizationOptions = optionsToSave;
+            } else {
+                delete configPayload.visualizationOptions;
+            }
+
+            await axios.put(`${config.API_BASE_URL}/api/kelola-dashboard/update-visualization/${vizId}`, {
+                visualization_type: type,
+                query: currentQuery, 
+                config: configPayload,
+            });
         } catch (error) {
-            console.error("Error (Debounced) saving/updating visualization:", error);
-            setStatus(prev => ({...prev, error: "Gagal menyimpan perubahan."}));
+            console.error("Error (Debounced) updating visualization:", error);
         }
     },
-    1500 // Debounce time in ms
+    1000
   );
 
   const detectDataStructure = (rawData) => {
-    if (!rawData || rawData.length === 0) return null;
+  if (!rawData || rawData.length === 0) return null;
+  
+  const firstRow = rawData[0];
+  const keys = Object.keys(firstRow);
+  
+  // Cek apakah ada pola data grouped (3+ kolom dengan kolom yang berisi angka)
+  const numericKeys = keys.filter(key => {
+    return rawData.some(row => !isNaN(parseFloat(row[key])) && isFinite(row[key]));
+  });
+  
+  const textKeys = keys.filter(key => !numericKeys.includes(key));
+  
+  // Untuk data time series grouped seperti contoh Anda
+  // Format: period_label, month_start, aktivitas, count_pendaftar_id_pendaftar
+  if (keys.length >= 3 && numericKeys.length >= 1 && textKeys.length >= 2) {
     
-    const firstRow = rawData[0];
-    const keys = Object.keys(firstRow);
+    // Cari kolom yang berisi periode/tanggal untuk sumbu X
+    const periodKey = textKeys.find(key => 
+      key.toLowerCase().includes('period') || 
+      key.toLowerCase().includes('label') ||
+      key.toLowerCase().includes('month') ||
+      key.toLowerCase().includes('date')
+    ) || textKeys[0];
     
-    const numericKeys = keys.filter(key => {
-      return rawData.some(row => !isNaN(parseFloat(row[key])) && isFinite(row[key]));
-    });
+    // Cari kolom kategori (biasanya bukan period/date)
+    const categoryKey = textKeys.find(key => 
+      key !== periodKey && 
+      !key.toLowerCase().includes('start') &&
+      !key.toLowerCase().includes('end') &&
+      !key.toLowerCase().includes('time')
+    ) || textKeys.find(key => key !== periodKey);
     
-    const textKeys = keys.filter(key => !numericKeys.includes(key));
-    
-    if (keys.length >= 3 && numericKeys.length >= 1 && textKeys.length >= 2) {
-      const periodKey = textKeys.find(key => 
-        key.toLowerCase().includes('period') || 
-        key.toLowerCase().includes('label') ||
-        key.toLowerCase().includes('month') ||
-        key.toLowerCase().includes('date')
-      ) || textKeys[0];
-      
-      const categoryKey = textKeys.find(key => 
-        key !== periodKey && 
-        !key.toLowerCase().includes('start') &&
-        !key.toLowerCase().includes('end') &&
-        !key.toLowerCase().includes('time')
-      ) || textKeys.find(key => key !== periodKey);
-      
-      const valueKey = numericKeys.find(key => 
-        key.toLowerCase().includes('count') ||
-        key.toLowerCase().includes('total') ||
-        key.toLowerCase().includes('sum')
-      ) || numericKeys[numericKeys.length - 1];
-      
-      return {
-        type: 'grouped',
-        structure: { labelKey: periodKey, categoryKey, valueKey }
-      };
-    }
+    // Ambil kolom numerik utama (biasanya yang terakhir atau yang mengandung 'count')
+    const valueKey = numericKeys.find(key => 
+      key.toLowerCase().includes('count') ||
+      key.toLowerCase().includes('total') ||
+      key.toLowerCase().includes('sum')
+    ) || numericKeys[numericKeys.length - 1];
     
     return {
-      type: 'simple',
-      structure: { labelKey: keys[0], valueKeys: keys.slice(1) }
+      type: 'grouped',
+      labelKey: periodKey,     // Untuk sumbu X (period_label)
+      categoryKey: categoryKey, // Untuk grouping (aktivitas)
+      valueKey: valueKey,      // Untuk values (count_pendaftar_id_pendaftar)
+      structure: { labelKey: periodKey, categoryKey, valueKey }
     };
-  };
-
-  const transformGroupedData = (rawData, labelKey, categoryKey, valueKey) => {
-    const grouped = rawData.reduce((acc, item) => {
-      const category = item[categoryKey] || 'Tidak Diketahui';
-      if (!acc[category]) {
-        acc[category] = {};
-      }
-      acc[category][item[labelKey]] = parseFloat(item[valueKey]) || 0;
-      return acc;
-    }, {});
-
-    const allLabels = [...new Set(rawData.map(item => item[labelKey]))];
-    
-    const sortDateLabels = (labels) => {
-      return labels.sort((a, b) => {
-        const parseDate = (dateStr) => {
-          if (!dateStr) return new Date(0);
-          const str = String(dateStr).trim();
-          
-          const monthYearMatch = str.match(/^([A-Za-z]+)-(\d{2,4})$/);
-          if (monthYearMatch) {
-            const [, monthName, year] = monthYearMatch;
-            const fullYear = year.length === 2 ? (parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year)) : parseInt(year);
-            return new Date(fullYear, getMonthNumber(monthName), 1);
-          }
-          
-          const yearMonthMatch = str.match(/^(\d{4})-(\d{1,2})$/);
-          if (yearMonthMatch) {
-            const [, year, month] = yearMonthMatch;
-            return new Date(parseInt(year), parseInt(month) - 1, 1);
-          }
-          
-          const monthYearNumMatch = str.match(/^(\d{1,2})-(\d{4})$/);
-          if (monthYearNumMatch) {
-            const [, month, year] = monthYearNumMatch;
-            return new Date(parseInt(year), parseInt(month) - 1, 1);
-          }
-
-          const weekMatch = str.match(/^Week\s+(\d+)\s+(\d{4})$/i);
-          if (weekMatch) {
-              const [, week, year] = weekMatch;
-              const date = new Date(parseInt(year), 0, 1 + (parseInt(week) - 1) * 7);
-              return date;
-          }
-
-          const quarterMatch = str.match(/^Q(\d)\s+(\d{4})$/i);
-          if (quarterMatch) {
-              const [, quarter, year] = quarterMatch;
-              return new Date(parseInt(year), (parseInt(quarter) - 1) * 3, 1);
-          }
-          
-          const standardDate = new Date(str);
-          if (!isNaN(standardDate.getTime())) return standardDate;
-          
-          return new Date(0);
-        };
-        
-        return parseDate(a).getTime() - parseDate(b).getTime();
-      });
-    };
-    
-    const getMonthNumber = (monthName) => {
-      const months = {'january':0,'jan':0,'januari':0,'february':1,'feb':1,'februari':1,'march':2,'mar':2,'maret':2,'april':3,'apr':3,'april':3,'may':4,'mei':4,'june':5,'jun':5,'juni':5,'july':6,'jul':6,'juli':6,'august':7,'aug':7,'agustus':7,'september':8,'sep':8,'sept':8,'october':9,'oct':9,'oktober':9,'november':10,'nov':10,'december':11,'dec':11,'desember':11};
-      return months[monthName.toLowerCase()] ?? 0;
-    };
-    
-    const sortedLabels = sortDateLabels(allLabels);
-    
-    const series = Object.keys(grouped).map(category => ({
-      name: category,
-      data: sortedLabels.map(label => grouped[category][label] || 0)
-    }));
-
-    return { series, categories: sortedLabels };
-  };
-
-  // useEffect utama untuk memproses data dan menyimpan perubahan konfigurasi
-  useEffect(() => {
-    if (!fetchedData || !fetchedData.raw || status.loading) {
-      if (!status.loading && !fetchedData && visualizationData) setVisualizationData(null);
-      return;
-    }
+  }
   
-    const { raw: rawData, keys } = fetchedData;
-    const dataStructure = detectDataStructure(rawData);
+  // Data sederhana: label + value(s)
+  return {
+    type: 'simple',
+    labelKey: keys[0],
+    valueKeys: keys.slice(1),
+    structure: { labelKey: keys[0], valueKeys: keys.slice(1) }
+  };
+};
 
-    console.log('Debug - Raw Data:', rawData);
-    console.log('Debug - Keys:', keys);
+// Perbaikan untuk transformGroupedData
+// Perbaikan untuk transformGroupedData dengan pengurutan tanggal yang benar
+const transformGroupedData = (rawData, labelKey, categoryKey, valueKey) => {
+  // Kelompokkan data berdasarkan kategori
+  const grouped = rawData.reduce((acc, item) => {
+    const category = item[categoryKey] || 'Tidak Diketahui';
+    if (!acc[category]) {
+      acc[category] = {};
+    }
+    acc[category][item[labelKey]] = parseFloat(item[valueKey]) || 0;
+    return acc;
+  }, {});
 
-    if (!dataStructure) {
-      setStatus(prev => ({ ...prev, error: "Struktur data tidak dapat dideteksi.", loading: false }));
+  // Dapatkan semua label unik untuk sumbu X
+  const allLabels = [...new Set(rawData.map(item => item[labelKey]))];
+  
+  // Fungsi untuk mendeteksi dan mengurutkan berbagai format tanggal
+  const sortDateLabels = (labels) => {
+    return labels.sort((a, b) => {
+      // Coba parsing berbagai format tanggal
+      const parseDate = (dateStr) => {
+        if (!dateStr) return new Date(0);
+        
+        const str = String(dateStr).trim();
+        
+        // Format: December-24, January-25, etc.
+        const monthYearMatch = str.match(/^([A-Za-z]+)-(\d{2,4})$/);
+        if (monthYearMatch) {
+          const [, monthName, year] = monthYearMatch;
+          const fullYear = year.length === 2 ? (parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year)) : parseInt(year);
+          return new Date(fullYear, getMonthNumber(monthName), 1);
+        }
+        
+        // Format: 2024-12, 2025-01, etc.
+        const yearMonthMatch = str.match(/^(\d{4})-(\d{1,2})$/);
+        if (yearMonthMatch) {
+          const [, year, month] = yearMonthMatch;
+          return new Date(parseInt(year), parseInt(month) - 1, 1);
+        }
+        
+        // Format: 12-2024, 01-2025, etc.
+        const monthYearNumMatch = str.match(/^(\d{1,2})-(\d{4})$/);
+        if (monthYearNumMatch) {
+          const [, month, year] = monthYearNumMatch;
+          return new Date(parseInt(year), parseInt(month) - 1, 1);
+        }
+        
+        // Format: Week 1 2024, Week 52 2023, etc.
+        const weekMatch = str.match(/^Week\s+(\d+)\s+(\d{4})$/i);
+        if (weekMatch) {
+          const [, week, year] = weekMatch;
+          const date = new Date(parseInt(year), 0, 1);
+          date.setDate(date.getDate() + (parseInt(week) - 1) * 7);
+          return date;
+        }
+        
+        // Format: Q1 2024, Q2 2024, etc.
+        const quarterMatch = str.match(/^Q(\d)\s+(\d{4})$/i);
+        if (quarterMatch) {
+          const [, quarter, year] = quarterMatch;
+          return new Date(parseInt(year), (parseInt(quarter) - 1) * 3, 1);
+        }
+        
+        // Format standar yang bisa diparsing langsung
+        const standardDate = new Date(str);
+        if (!isNaN(standardDate.getTime())) {
+          return standardDate;
+        }
+        
+        // Jika tidak bisa diparse, kembalikan tanggal default
+        return new Date(0);
+      };
+      
+      const dateA = parseDate(a);
+      const dateB = parseDate(b);
+      
+      return dateA.getTime() - dateB.getTime();
+    });
+  };
+  
+  // Helper function untuk mengkonversi nama bulan ke angka
+  const getMonthNumber = (monthName) => {
+    const months = {
+      'january': 0, 'jan': 0, 'januari': 0,
+      'february': 1, 'feb': 1, 'februari': 1,
+      'march': 2, 'mar': 2, 'maret': 2,
+      'april': 3, 'apr': 3, 'april': 3,
+      'may': 4, 'mei': 4,
+      'june': 5, 'jun': 5, 'juni': 5,
+      'july': 6, 'jul': 6, 'juli': 6,
+      'august': 7, 'aug': 7, 'agustus': 7,
+      'september': 8, 'sep': 8, 'sept': 8,
+      'october': 9, 'oct': 9, 'oktober': 9,
+      'november': 10, 'nov': 10,
+      'december': 11, 'dec': 11, 'desember': 11
+    };
+    
+    return months[monthName.toLowerCase()] || 0;
+  };
+  
+  // Urutkan labels berdasarkan tanggal
+  const sortedLabels = sortDateLabels(allLabels);
+  
+  console.log('Debug - Original Labels:', allLabels);
+  console.log('Debug - Sorted Labels:', sortedLabels);
+  console.log('Debug - Grouped Data:', grouped);
+  
+  // Buat series untuk setiap kategori dengan urutan yang benar
+  const series = Object.keys(grouped).map(category => ({
+    name: category,
+    data: sortedLabels.map(label => grouped[category][label] || 0)
+  }));
+
+  console.log('Debug - Series:', series);
+  
+  return { series, categories: sortedLabels };
+};
+
+  useEffect(() => {
+  if (!fetchedData || !fetchedData.raw || status.loading) {
+    if (!status.loading && !fetchedData && visualizationData) setVisualizationData(null);
+    return;
+  }
+  
+  const { raw: rawData, keys } = fetchedData;
+  
+  console.log('Debug - Raw Data:', rawData);
+  console.log('Debug - Keys:', keys);
+  
+  // Deteksi struktur data
+  const dataStructure = detectDataStructure(rawData);
+  console.log('Debug - Data Structure:', dataStructure);
+  
+  if (!dataStructure) {
+    setStatus(prev => ({ ...prev, error: "Struktur data tidak dapat dideteksi.", loading: false }));
+    return;
+  }
+
+  let labelKey, valueKeys, categories, chartSeries;
+  const currentChartColors = visualizationConfig?.colors || ["#4CAF50", "#FF9800", "#2196F3", "#F44336", "#9C27B0", "#00BCD4"];
+
+  if (dataStructure.type === 'grouped') {
+    // Untuk data yang sudah di-GROUP BY
+    const { labelKey: detectedLabelKey, categoryKey, valueKey } = dataStructure.structure;
+    labelKey = detectedLabelKey;
+    
+    console.log('Debug - Using keys:', { labelKey, categoryKey, valueKey });
+    
+    const transformed = transformGroupedData(rawData, labelKey, categoryKey, valueKey);
+    categories = transformed.categories;
+    chartSeries = transformed.series.map((series, index) => ({
+      ...series,
+      color: currentChartColors[index % currentChartColors.length]
+    }));
+    valueKeys = [valueKey]; // Untuk keperluan lain
+    
+    console.log('Debug - Final Categories:', categories);
+    console.log('Debug - Final Series:', chartSeries);
+    
+  } else {
+    // Untuk data sederhana (existing logic)
+    labelKey = dataStructure.structure.labelKey;
+    valueKeys = dataStructure.structure.valueKeys;
+    
+    if ((activeVisualizationType !== 'card' && activeVisualizationType !== 'table') && valueKeys.length === 0) {
+      setStatus(prev => ({ ...prev, error: "Data tidak cukup untuk chart. Perlu minimal 1 kolom nilai.", loading: false }));
+      setVisualizationData({ rawData, labelKey, valueKeys:[], series:[], options:{}, currentType: activeVisualizationType, colors: [] });
       return;
     }
 
-    let labelKey, valueKeys, categories, chartSeries;
-    const currentChartColors = visualizationConfig?.colors || ["#4CAF50", "#FF9800", "#2196F3", "#F44336", "#9C27B0", "#00BCD4"];
-
+    categories = rawData.map(item => item[labelKey]);
+    
+    // Series untuk data sederhana
     const parseValue = val => {
       const parsed = typeof val === "number" ? val : parseFloat(String(val).replace(/,/g, ''));
-      return isNaN(parsed) ? null : parsed;
+      return isNaN(parsed) ? (activeVisualizationType === 'heatmap' || activeVisualizationType === 'scatter' ? null : 0) : parsed;
     };
 
-    if (dataStructure.type === 'grouped') {
-        const { labelKey: detectedLabelKey, categoryKey, valueKey } = dataStructure.structure;
-        labelKey = detectedLabelKey;
-        const transformed = transformGroupedData(rawData, labelKey, categoryKey, valueKey);
-        categories = transformed.categories;
-        chartSeries = transformed.series.map((series, index) => ({
-          ...series,
-          color: currentChartColors[index % currentChartColors.length]
-        }));
-        valueKeys = [valueKey];
-    } else {
-        labelKey = dataStructure.structure.labelKey;
-        valueKeys = dataStructure.structure.valueKeys;
-        if ((activeVisualizationType !== 'card' && activeVisualizationType !== 'table') && valueKeys.length === 0) {
-          setStatus(prev => ({ ...prev, error: "DData tidak cukup untuk chart. Perlu minimal 1 kolom nilai.", loading: false }));
-          setVisualizationData({ rawData, labelKey, valueKeys:[], series:[], options:{}, currentType: activeVisualizationType, colors: [] });
-          return;
-        }
-        categories = rawData.map(item => item[labelKey]);
-        
-        const parseValue = val => {
-        const parsed = typeof val === "number" ? val : parseFloat(String(val).replace(/,/g, ''));
-        return isNaN(parsed) ? (activeVisualizationType === 'heatmap' || activeVisualizationType === 'scatter' ? null : 0) : parsed;
-        };
-
-        if (activeVisualizationType === "pie" || activeVisualizationType === "donut") {
+    if (activeVisualizationType === "pie" || activeVisualizationType === "donut") {
       if (valueKeys.length > 0) {
         chartSeries = rawData.map(item => parseValue(item[valueKeys[0]]));
       }
@@ -636,49 +701,77 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     }
   }
 
-    let chartOptions = {};
+  let chartOptions = {};
+  if (activeVisualizationType !== "table" && activeVisualizationType !== "card") {
+    chartOptions = getChartOptions(activeVisualizationType, categories, currentChartColors);
+  }
+  
+  setVisualizationData({
+    rawData, 
+    labelKey, 
+    valueKeys,
+    colors: currentChartColors,
+    series: chartSeries,
+    options: chartOptions,
+    currentType: activeVisualizationType,
+    dataStructure // Simpan info struktur data
+  });
+
+    const persistConfig = { ...visualizationConfig, colors: currentChartColors };
     if (activeVisualizationType !== "table" && activeVisualizationType !== "card") {
-      chartOptions = getChartOptions(activeVisualizationType, categories, currentChartColors);
+        persistConfig.visualizationOptions = chartOptions;
+    } else {
+        delete persistConfig.visualizationOptions;
     }
-    
-    setVisualizationData({
-      rawData, 
-      labelKey, 
-      valueKeys,
-      colors: currentChartColors,
-      series: chartSeries,
-      options: chartOptions,
-      currentType: activeVisualizationType,
-      dataStructure
-    });
 
-    // --- LOGIKA KUNCI UNTUK MENCEGAH SAVE OTOMATIS ---
-    // Jika ini adalah render awal (setelah pindah canvas atau load pertama kali),
-    // kita lewati logika penyimpanan.
-    if (isInitialMount.current) {
-        isInitialMount.current = false; // Set ke false agar run berikutnya bisa menyimpan
-        return; // Jangan lakukan apa-apa lagi di render awal ini.
-    }
-    
-    // Jika kode sampai di sini, artinya useEffect ini dipicu oleh perubahan
-    // pada `visualizationConfig` atau `activeVisualizationType` (bukan render awal).
-    // Ini adalah saat yang tepat untuk menyimpan perubahan.
-    console.log(`Perubahan terdeteksi, menyimpan visualisasi ID: ${savedVisualizationId || '(baru)'}`);
-    debouncedSaveOrUpdateVisualization(
-        savedVisualizationId,
-        activeVisualizationType,
-        chartOptions,
-        currentChartColors,
-        requestPayload.query,
-        visualizationConfig // Kirim seluruh config yang ada
+    if (skipConfigUpdateRef.current) {
+    skipConfigUpdateRef.current = false;
+    return;
+  }
+
+    if (!savedVisualizationId) { // Initial Save because savedVisualizationId was reset
+      // console.log("Effect 2: Attempting initial save...");
+      console.log(
+      `Config changed, updating visualization ID ${savedVisualizationId}`
     );
-
+      const savePayload = {
+          ...payload,
+          id_canvas: currentCanvasId, 
+          id_visualization: requestPayload.id_visualization,
+          id_datasource: requestPayload.id_datasource || 1,
+          name: requestPayload.name || visualizationConfig?.title || "Visualisasi Baru",
+          visualization_type: activeVisualizationType,
+          query: requestPayload.query,
+          config: persistConfig,
+      };
+      axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/save-visualization`, savePayload)
+          .then(saveResponse => {
+              if (saveResponse.data?.data?.id) {
+                  setSavedVisualizationId(saveResponse.data.data.id);
+              }
+          })
+          .catch(error => {
+              console.error("Error saving new visualization:", error);
+              setStatus(prev => ({ ...prev, error: error.response?.data?.message || error.message || "Error saat menyimpan visualisasi."}));
+          });
+    } else if (savedVisualizationId) {
+      debouncedUpdateVisualization(
+          savedVisualizationId,
+          activeVisualizationType,
+          chartOptions,
+          currentChartColors,
+          requestPayload.query 
+      );
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     fetchedData, 
     activeVisualizationType, 
-    visualizationConfig
-    // Tidak perlu dependensi lain di sini untuk mencegah loop yang tidak diinginkan
+    visualizationConfig, 
+    // savedVisualizationId is intentionally not here to avoid loop with setSavedVisualizationId
+    // currentCanvasId & requestPayload.query ensure save logic runs with these available
+    currentCanvasId, requestPayload?.query // Include to re-trigger save if these essential IDs/data change for initial save
+    // getChartOptions is memoized
   ]);
 
   const handleVisualizationTypeChange = (newType) => {
@@ -686,39 +779,40 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   };
 
   const renderChartControls = () => {
-    const chartOptionsList = [
-      { type: "bar", label: "Batang" }, 
-      { type: "line", label: "Garis" },
-      { type: "pie", label: "Pie" }, 
-      { type: "donut", label: "Donut" },
-      { type: "scatter", label: "Scatter" }, 
-      { type: "heatmap", label: "Heatmap" },
-      { type: "table", label: "Tabel" }, 
-      { type: "card", label: "Card" }
-    ];
-    
-    // Normalisasi: tipe 'table' sama dengan '' di state lama, konsistenkan
-    const currentSelection = activeVisualizationType === "" ? "table" : activeVisualizationType;
-
-    return (
-      <div className="chart-controls mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Jenis Visualisasi:
-        </label>
-        <select
-          value={currentSelection}
-          onChange={(e) => handleVisualizationTypeChange(e.target.value)}
-          className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-        >
-          {chartOptionsList.map((option) => (
-            <option key={option.type} value={option.type}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
+  const chartOptionsList = [
+    { type: "bar", label: "Batang" }, 
+    { type: "line", label: "Garis" },
+    { type: "pie", label: "Pie" }, 
+    { type: "donut", label: "Donut" },
+    { type: "scatter", label: "Scatter" }, 
+    { type: "heatmap", label: "Heatmap" },
+    { type: "", label: "Tabel" }, 
+    { type: "card", label: "Card" }
+  ];
+  
+  // Normalize activeVisualizationType for comparison: "" means table.
+  const currentSelection = activeVisualizationType === "" ? "" : activeVisualizationType;
+  const currentLabel = chartOptionsList.find(option => option.type === currentSelection)?.label || "Tabel";
+  
+  return (
+    <div className="chart-controls mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Jenis Visualisasi:
+      </label>
+      <select
+        value={currentSelection}
+        onChange={(e) => handleVisualizationTypeChange(e.target.value)}
+        className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      >
+        {chartOptionsList.map((option) => (
+          <option key={option.type} value={option.type}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
   if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
 
@@ -769,6 +863,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     );
   }
   
+  // activeVisualizationType "" (empty string) means Table
   if (activeVisualizationType === "" || activeVisualizationType === "table") { 
     return (
       <div style={chartContainerStyle}>
@@ -790,7 +885,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
           <CardComponent 
             data={visualizationData.rawData} 
             labelKey={visualizationData.labelKey} 
-            valueKey={visualizationData.valueKeys[0] || visualizationData.labelKey}
+            valueKey={visualizationData.valueKeys[0] || visualizationData.labelKey} // Fallback to labelKey if no valueKeys for single col card
             visualizationConfig={visualizationConfig}
           />
         </div>
@@ -803,7 +898,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       {renderChartControls()}
       {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
       {visualizationData.options && visualizationData.series && 
-       (activeVisualizationType !== "table" && activeVisualizationType !== "card") && (
+       (activeVisualizationType !== "" && activeVisualizationType !== "table" && activeVisualizationType !== "card") && (
         <div style={chartWrapperStyle}> 
           <Chart
             options={visualizationData.options}
