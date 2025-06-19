@@ -5,16 +5,10 @@ import config from "../config"; // Assuming this path is correct
 import { useDebouncedCallback } from 'use-debounce'; // IMPORT use-debounce
 
 // Card Component for displaying single value
-const CardComponent = ({ data, labelKey, valueKey, visualizationConfig, userAccessLevel}) => {
+const CardComponent = ({ data, labelKey, valueKey, visualizationConfig}) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
   }
-
-  const [userAccessLevel, setUserAccessLevel] = useState('view');
-  useEffect(() => {
-      const access = localStorage.getItem('access') || 'view' ;
-      setUserAccessLevel(access);
-    }, []);
 
   // Get the first row's value
   const firstRow = data[0];
@@ -114,6 +108,12 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   const [activeVisualizationType, setActiveVisualizationType] = useState(
     visualizationType || requestPayload?.visualizationType || "bar"
   );
+
+  const [userAccessLevel, setUserAccessLevel] = useState('view');
+  useEffect(() => {
+      const access = localStorage.getItem('access') || 'view' ;
+      setUserAccessLevel(access);
+    }, []);
 
   const skipConfigUpdateRef = useRef(true);
   
