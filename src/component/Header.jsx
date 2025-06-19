@@ -28,7 +28,7 @@ const Header = ({
   const accessLevels = [
     { value: 'view', label: 'View', color: 'info' },
     { value: 'edit', label: 'Edit', color: 'warning' },
-    { value: 'admn', label: 'Admin', color: 'success' },
+    { value: 'admin', label: 'Admin', color: 'success' },
     { value: 'none', label: 'Tidak Ada Akses', color: 'secondary' }
   ];
 
@@ -134,7 +134,7 @@ const Header = ({
     };
   }, [showUserDropdown, editingAccess]);
   
-  const handleUpdateAccess = async (userId, newAccess) => {
+  const handleUpdateAccess = async (userId, newAccess, createdBy) => {
     try {
       const token = localStorage.getItem('token');
       const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -162,9 +162,9 @@ const Header = ({
                     ? user.projects_access.filter(acc => acc.id_project !== 1)
                     : user.projects_access.some(acc => acc.id_project === 1)
                       ? user.projects_access.map(acc => 
-                          acc.id_project === 1 ? { ...acc, access: newAccess } : acc
+                          acc.id_project === 1 ? { ...acc, access: newAccess, modified_by: createdBy } : acc
                         )
-                      : [...user.projects_access, { id_project: 1, access: newAccess }]
+                      : [...user.projects_access, { id_project: 1, access: newAccess, modified_by: createdBy  }]
                 }
               : user
           )
@@ -323,7 +323,7 @@ const goToPreviousCanvas = () => {
                 <FaPlus className="me-1" />
                 Tambah Datasource
               </span>
-              {userAccessLevel == 'admn' && (
+              {userAccessLevel == 'admin' && (
                 <>
                   <span className="mx-2">|</span>
                   <div id="user-dropdown-container" className="position-relative">
