@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
+import {AiOutlineLogout} from "react-icons/ai";
 import "./assets/css/dashboard.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -22,6 +23,7 @@ function App() {
   const [canvasQuery, setCanvasQuery] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState('login'); // 'login' atau 'register'
+  const [userAccessLevel, setUserAccessLevel] = useState(null);
 
   useEffect(() => {
     // Cek apakah ada token tersimpan di localStorage
@@ -31,11 +33,14 @@ function App() {
       // Set default header untuk axios
       axios.defaults.headers.common['Authorization'] = `${tokenType} ${token}`;
       setIsAuthenticated(true);
+      const accessLevel = localStorage.getItem('access');
+      setUserAccessLevel(accessLevel || 'none');
     }
   }, []);
 
   // Function untuk handle successful registration/login
   const handleAuthSuccess = () => {
+    const accessLevel = localStorage.getItem('access');
     setIsAuthenticated(true);
   };
 
@@ -61,6 +66,29 @@ function App() {
         />
       );
     }
+  }
+
+  if (userAccessLevel === 'none') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+          <button 
+            className="btn btn-outline-danger btn-sm d-flex align-items-center"
+            onClick={() => {
+                localStorage.clear();
+                delete axios.defaults.headers.common['Authorization'];
+                window.location.reload();
+            }}
+            title="Logout"
+          >
+            <AiOutlineLogout className="me-1" />
+            Keluar
+          </button>
+        </div>
+        <h1>Akses Ditolak</h1>
+        <p>Anda belum memiliki akses untuk melihat dasbor ini.</p>
+      </div>
+    );
   }
 
   return (
