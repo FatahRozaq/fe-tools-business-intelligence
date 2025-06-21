@@ -38,8 +38,14 @@ const Sidebar = () => {
 
   const [selectedVisualization, setSelectedVisualization] = useState(null);
   const [addNewVisualization, setAddNewVisualization] = useState(false);
-
   const [newVisualizationPayload, setNewVisualizationPayload] = useState(null);
+
+  const [userAccessLevel, setUserAccessLevel] = useState('view');
+
+  useEffect(() => {
+    const access = localStorage.getItem('access') || 'view' ;
+    setUserAccessLevel(access);
+  }, []);
 
   const fetchAllTables = () => {
     setLoading(true);
@@ -64,6 +70,14 @@ const Sidebar = () => {
   };
 
   useEffect(() => {
+    if (userAccessLevel === 'view') {
+        const sidebarIds = ["sidebar-data", "sidebar-diagram", "sidebar-query", "sidebar-canvas"];
+        sidebarIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        return;
+    }
     const sidebarData = document.getElementById("sidebar-data");
     const sidebarDiagram = document.getElementById("sidebar-diagram");
     const sidebarQuery = document.getElementById("sidebar-query");
@@ -88,12 +102,7 @@ const Sidebar = () => {
       sidebarCanvas.style.display = "none";
     }
 
-    const pilihDataBtn = document.getElementById("menu-data");
-    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
-    const pilihQueryBtn = document.getElementById("menu-query");
-    const pilihCanvasBtn = document.getElementById("menu-canvas");
-    const tambahDatasourceBtn = document.getElementById("menu-tambah-datasource");
-
+    // Handler untuk klik menu di header
     const menuClickHandler = (showSidebar) => {
       sidebarData.style.display = showSidebar === "data" ? "block" : "none";
       sidebarDiagram.style.display = showSidebar === "diagram" ? "block" : "none";
@@ -101,17 +110,42 @@ const Sidebar = () => {
       sidebarCanvas.style.display = showSidebar === "canvas" ? "block" : "none";
     };
 
+    const pilihDataBtn = document.getElementById("menu-data");
+    const pilihVisualisasiBtn = document.getElementById("menu-visualisasi");
+    const pilihQueryBtn = document.getElementById("menu-query");
+    const pilihCanvasBtn = document.getElementById("menu-canvas");
+    const tambahDatasourceBtn = document.getElementById("menu-tambah-datasource");
+
+    // const menuClickHandler = (showSidebar) => {
+    //   sidebarData.style.display = showSidebar === "data" ? "block" : "none";
+    //   sidebarDiagram.style.display = showSidebar === "diagram" ? "block" : "none";
+    //   sidebarQuery.style.display = showSidebar === "query" ? "block" : "none";
+    //   sidebarCanvas.style.display = showSidebar === "canvas" ? "block" : "none";
+    // };
+
     if (pilihDataBtn) pilihDataBtn.addEventListener("click", () => menuClickHandler("data"));
     if (pilihVisualisasiBtn) pilihVisualisasiBtn.addEventListener("click", () => menuClickHandler("diagram"));
     if (pilihQueryBtn) pilihQueryBtn.addEventListener("click", () => menuClickHandler("query"));
     if (pilihCanvasBtn) pilihCanvasBtn.addEventListener("click", () => menuClickHandler("canvas"));
     if (tambahDatasourceBtn) tambahDatasourceBtn.addEventListener("click", () => setShowAddDatasource(true));
 
-  }, [selectedVisualization]);
+    return () => {
+        if (pilihDataBtn) pilihDataBtn.removeEventListener("click", () => menuClickHandler("data"));
+        if (pilihVisualisasiBtn) pilihVisualisasiBtn.removeEventListener("click", () => menuClickHandler("diagram"));
+        if (pilihQueryBtn) pilihQueryBtn.removeEventListener("click", () => menuClickHandler("query"));
+        if (pilihCanvasBtn) pilihCanvasBtn.removeEventListener("click", () => menuClickHandler("canvas"));
+        if (tambahDatasourceBtn) tambahDatasourceBtn.removeEventListener("click", () => setShowAddDatasource(true));
+    };
+  }, [selectedVisualization, userAccessLevel]);
 
   useEffect(() => {
-    fetchAllTables();
-  }, []);
+    // Hanya fetch data tabel jika pengguna bukan 'view'
+    if (userAccessLevel !== 'view') {
+      fetchAllTables();
+    } else {
+      setLoading(false);
+    }
+  }, [userAccessLevel]);
 
   const handleBuildVisualization = (payload, query, data) => {
     setNewVisualizationPayload(payload);
@@ -482,7 +516,7 @@ const Sidebar = () => {
 
   return (
     <>
-      {renderSidebarContent()}
+      {userAccessLevel !== 'view' && renderSidebarContent()}
 
       {/* <Header
         currentCanvasIndex={currentCanvasIndex}
@@ -499,52 +533,57 @@ const Sidebar = () => {
         setCanvases={setCanvases}  // Pass setCanvases to Header component
         setCurrentCanvasId={setCurrentCanvasId}
         totalCanvasCount={totalCanvasCount}
+        userAccessLevel={userAccessLevel}
       />
 
-      <SidebarCanvas
-        currentCanvasIndex={currentCanvasIndex}
-        setCurrentCanvasIndex={setCurrentCanvasIndex}
-        currentCanvasId={currentCanvasId}
-        setCurrentCanvasId={setCurrentCanvasId}
-        totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
-        setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
-        canvases={canvases}
-        setCanvases={setCanvases}
-      />
-      {/* <SidebarData
-        setCanvasData={setCanvasData}
-        selectedTable={selectedTable}
-        onBuildVisualization={handleBuildVisualization}
-        totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
-        setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
-        canvases={canvases}
-        setCanvases={setCanvases}
-      /> */}
+      {userAccessLevel != 'view' && (
+        <>
+        <SidebarCanvas
+          currentCanvasIndex={currentCanvasIndex}
+          setCurrentCanvasIndex={setCurrentCanvasIndex}
+          currentCanvasId={currentCanvasId}
+          setCurrentCanvasId={setCurrentCanvasId}
+          totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+          setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
+          canvases={canvases}
+          setCanvases={setCanvases}
+        />
+        {/* <SidebarData
+          setCanvasData={setCanvasData}
+          selectedTable={selectedTable}
+          onBuildVisualization={handleBuildVisualization}
+          totalCanvasCount={totalCanvasCount}  // Pass the total canvas count
+          setTotalCanvasCount={setTotalCanvasCount} // Pass setter to update the count
+          canvases={canvases}
+          setCanvases={setCanvases}
+        /> */}
 
-      {/* <SidebarData
-        setCanvasData={setCanvasData}
-        selectedTable={selectedTable}
-        setCanvasQuery={handleQuerySubmit}
-        onVisualizationTypeChange={handleVisualizationTypeChange}
-      /> */}
+        {/* <SidebarData
+          setCanvasData={setCanvasData}
+          selectedTable={selectedTable}
+          setCanvasQuery={handleQuerySubmit}
+          onVisualizationTypeChange={handleVisualizationTypeChange}
+        /> */}
 
-      <SidebarData
-        setCanvasData={setCanvasData}
-        selectedTable={selectedTable}
-        onBuildVisualization={handleBuildVisualization} // Prop baru
-        onVisualizationTypeChange={handleVisualizationTypeChange}
-        editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
-      />
-      <SidebarDiagram
-        onVisualizationTypeChange={handleVisualizationTypeChange}
-        onVisualizationConfigChange={handleConfigUpdate}
-        selectedVisualization={selectedVisualization}
-        visualizationConfig={visualizationConfig}
-      />
-      <SidebarQuery
-        onQuerySubmit={handleQuerySubmit}
-        onVisualizationTypeChange={handleVisualizationTypeChange}
-      />
+        <SidebarData
+          setCanvasData={setCanvasData}
+          selectedTable={selectedTable}
+          onBuildVisualization={handleBuildVisualization} // Prop baru
+          onVisualizationTypeChange={handleVisualizationTypeChange}
+          editingPayload={selectedVisualization ? selectedVisualization.builderPayload : null}
+        />
+        <SidebarDiagram
+          onVisualizationTypeChange={handleVisualizationTypeChange}
+          onVisualizationConfigChange={handleConfigUpdate}
+          selectedVisualization={selectedVisualization}
+          visualizationConfig={visualizationConfig}
+        />
+        <SidebarQuery
+          onQuerySubmit={handleQuerySubmit}
+          onVisualizationTypeChange={handleVisualizationTypeChange}
+        />
+        </>
+      )}
 
       <Canvas
         data={canvasData}
@@ -561,6 +600,7 @@ const Sidebar = () => {
         setCurrentCanvasId={setCurrentCanvasId}
         onUpdateVisualizationType={updateSelectedVisualizationType}
         newVisualizationPayload={newVisualizationPayload}
+        userAccessLevel={userAccessLevel}
       />
       <style jsx>{`
         .sidebar {

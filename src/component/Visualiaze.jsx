@@ -4,8 +4,8 @@ import axios from "axios";
 import config from "../config"; // Pastikan path ini benar
 import { useDebouncedCallback } from 'use-debounce';
 
-// Card Component untuk menampilkan nilai tunggal
-const CardComponent = ({ data, labelKey, valueKey, visualizationConfig }) => {
+// Card Component for displaying single value
+const CardComponent = ({ data, labelKey, valueKey, visualizationConfig}) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
   }
@@ -110,6 +110,14 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   );
   // Ref ini akan melacak apakah ini adalah render pertama
   const isInitialMount = useRef(true);
+
+  const [userAccessLevel, setUserAccessLevel] = useState('view');
+  useEffect(() => {
+      const access = localStorage.getItem('access') || 'view' ;
+      setUserAccessLevel(access);
+    }, []);
+
+  const skipConfigUpdateRef = useRef(true);
   
   useEffect(() => {
     if (visualizationType) {
@@ -686,22 +694,24 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   };
 
   const renderChartControls = () => {
-    const chartOptionsList = [
-      { type: "bar", label: "Batang" }, 
-      { type: "line", label: "Garis" },
-      { type: "pie", label: "Pie" }, 
-      { type: "donut", label: "Donut" },
-      { type: "scatter", label: "Scatter" }, 
-      { type: "heatmap", label: "Heatmap" },
-      { type: "table", label: "Tabel" }, 
-      { type: "card", label: "Card" }
-    ];
-    
-    // Normalisasi: tipe 'table' sama dengan '' di state lama, konsistenkan
-    const currentSelection = activeVisualizationType === "" ? "table" : activeVisualizationType;
-
-    return (
-      <div className="chart-controls mb-4">
+  const chartOptionsList = [
+    { type: "bar", label: "Batang" }, 
+    { type: "line", label: "Garis" },
+    { type: "pie", label: "Pie" }, 
+    { type: "donut", label: "Donut" },
+    { type: "scatter", label: "Scatter" }, 
+    { type: "heatmap", label: "Heatmap" },
+    { type: "", label: "Tabel" }, 
+    { type: "card", label: "Card" }
+  ];
+  
+  // Normalize activeVisualizationType for comparison: "" means table.
+  const currentSelection = activeVisualizationType === "" ? "table" : activeVisualizationType;
+  
+  return (
+    <div className="chart-controls mb-4">
+      {userAccessLevel !== 'view' && (
+        <>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Jenis Visualisasi:
         </label>
@@ -716,9 +726,11 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
             </option>
           ))}
         </select>
-      </div>
-    );
-  };
+        </>
+      )}
+    </div>
+  );
+};
 
   if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
 
