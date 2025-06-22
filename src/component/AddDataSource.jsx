@@ -8,7 +8,7 @@ import { MdCancel } from "react-icons/md";
 const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const [formData, setFormData] = useState({
     connection_name: "",
-    db_type: "",
+    driver: "",
     host: "",
     port: "",
     database: "",
@@ -21,15 +21,15 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
 
   const dbTypes = [
     { value: "mysql", label: "MySQL" },
-    { value: "postgresql", label: "PostgreSQL" },
-    { value: "sqlserver", label: "SQL Server" }
+    { value: "pgsql", label: "PostgreSQL" },
+    { value: "sqlsrv", label: "SQL Server" }
   ];
 
   const getDefaultPort = (dbType) => {
     const defaultPorts = {
       mysql: "3306",
-      postgresql: "5432",
-      sqlserver: "1433"
+      pgsql: "5432",
+      sqlsrv: "1433"
     };
     return defaultPorts[dbType] || "";
   };
@@ -37,11 +37,10 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Auto-fill default port when database type changes
-    if (name === "db_type") {
+    if (name === "driver") {
       setFormData({ 
         ...formData, 
-        [name]: value,
+        driver: value,
         port: getDefaultPort(value)
       });
     } else {
@@ -88,7 +87,7 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
         <span className="sub-text">Tambah Datasource</span>
       </div>
       <hr className="full-line" />
-      {message && <div className={`alert ${errors.length > 0 ? 'alert-danger' : 'alert-info'}`}>{message}</div>}
+      {message && <div className={`alert ${Object.keys(errors).length > 0 ? 'alert-danger' : 'alert-info'}`}>{message}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>
@@ -111,11 +110,11 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
             Tipe Database <span className="text-danger">*</span>
           </label>
           <select
-            name="db_type"
-            value={formData.db_type}
+            name="driver"
+            value={formData.driver}
             onChange={handleChange}
             required
-            className={`form-control ${errors.db_type ? 'is-invalid' : ''}`}
+            className={`form-control ${errors.driver ? 'is-invalid' : ''}`}
           >
             <option value="">Pilih Tipe Database</option>
             {dbTypes.map((type) => (
@@ -124,7 +123,7 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
               </option>
             ))}
           </select>
-          {errors.db_type && <div className="invalid-feedback">{errors.db_type[0]}</div>}
+          {errors.driver && <div className="invalid-feedback">{errors.driver[0]}</div>}
         </div>
 
         <div className="form-group">
