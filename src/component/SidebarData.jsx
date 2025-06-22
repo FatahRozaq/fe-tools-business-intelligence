@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import config from "../config";
 import FooterBar from "./FooterBar";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { GrDatabase } from "react-icons/gr";
-import { FaPlus, FaFilter, FaTableColumns, FaCalendarDays, FaChartLine } from "react-icons/fa6";
+import { FaPlus, FaFilter, FaTableColumns, FaCalendarDays, FaChartLine, FaSortDown } from "react-icons/fa6";
 import AddButton from "./Button/AddButton";
 import SubmitButton from "./Button/SubmitButton";
 import { Toast } from "primereact/toast";
 import DateRangeSelector from "./DateRangeSelector";
 import TopNSelector from "./TopNSelector";
+import SortBySelector from "./SortBySelector";
 
 const SidebarData = ({
   setCanvasData,
-  // setCanvasQuery,
   onBuildVisualization,
   selectedTable,
   onVisualizationTypeChange,
@@ -46,6 +46,8 @@ const SidebarData = ({
   const [showDateRangePopup, setShowDateRangePopup] = useState(false);
   const [dateFilter, setDateFilter] = useState(null);
   const [activeTables, setActiveTables] = useState([]);
+  const [sortBy, setSortBy] = useState('');
+  const [orderBy, setOrderBy] = useState('asc');
 
   useEffect(() => {
     if (editingPayload) {
@@ -106,6 +108,10 @@ const SidebarData = ({
     
     setDateFilter(payload.date_filter_details || null);
     setTopNConfig(payload.topN ? { value: payload.topN } : null);
+    
+    setSortBy(payload.sortBy || '');
+    setOrderBy(payload.orderBy || 'asc');
+
     setActiveTables(Array.from(allTablesInPayload));
     setReadyToCreateVisualization(true);
   };
@@ -140,6 +146,58 @@ const SidebarData = ({
     return parts.length > 1 ? parts[1].replace(/_/g, ' ') : tableName.replace(/_/g, ' ');
   };
   
+  const generateMetricAlias = (metrik) => {
+    if (!metrik) return '';
+    const [metrikValue, agg] = metrik.split('|');
+    try {
+        const parsedMetrik = JSON.parse(metrikValue);
+        const columnName = parsedMetrik.columnName;
+        const aggregationType = (agg || 'COUNT').toLowerCase();
+        
+        const columnAliasBase = String(columnName).replace(/\./g, '_').replace(/\*/g, 'all');
+        const sanitizedAliasBase = columnAliasBase.replace(/[^a-zA-Z0-9_]/g, '');
+
+        switch (aggregationType) {
+            case 'sum': return `sum_${sanitizedAliasBase}`;
+            case 'average': return `avg_${sanitizedAliasBase}`;
+            case 'min': return `min_${sanitizedAliasBase}`;
+            case 'max': return `max_${sanitizedAliasBase}`;
+            case 'count':
+            default:
+                return columnName === '*' ? 'count_star' : `count_${sanitizedAliasBase}`;
+        }
+    } catch {
+        return '';
+    }
+  };
+
+  const sortableColumns = useMemo(() => {
+    const columns = [];
+    
+    dimensiInputs.forEach(dim => {
+        try {
+            if (dim && dim.trim() !== "") {
+                const parsedDim = JSON.parse(dim);
+                const value = `${parsedDim.tableName}.${parsedDim.columnName}`;
+                columns.push({ label: `Dim: ${parsedDim.columnName}`, value });
+            }
+        } catch {}
+    });
+
+    metrikInputs.forEach(metrik => {
+        try {
+            if (metrik && metrik.trim() !== "") {
+                const [metrikValue] = metrik.split('|');
+                const parsedMetrik = JSON.parse(metrikValue);
+                const value = generateMetricAlias(metrik);
+                columns.push({ label: `Metric: ${parsedMetrik.columnName}`, value });
+            }
+        } catch {}
+    });
+
+    return columns;
+  }, [dimensiInputs, metrikInputs]);
+
   const handleOpenJoinDialog = async (type) => {
     setIsLoading(true);
     
@@ -333,6 +391,8 @@ const SidebarData = ({
     setShowDateRangePopup(false);
     setTopNConfig(null);
     setShowTopNPopup(false);
+    setSortBy('');
+    setOrderBy('asc');
     setActiveTables([]);
     showToast("info", "Info", "Form reset for new visualization");
   };
@@ -378,7 +438,9 @@ const SidebarData = ({
       topN: topNConfig ? topNConfig.value : null,
       granularity: dateFilter?.granularity || 'asis',
       display_format: dateFilter?.displayFormat || 'auto',
-      date_filter_details: dateFilter ? { ...dateFilter } : null
+      date_filter_details: dateFilter ? { ...dateFilter } : null,
+      sortBy: sortBy,
+      orderBy: orderBy,
     };
 
     axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-data`, payload)
@@ -480,13 +542,26 @@ const SidebarData = ({
           </div>
           <div className="mt-4 text-end"><Button label="Apply" icon="pi pi-check" onClick={() => handleJoinSelectionMetrik(selectedJoinTypeMetrik)} className="p-button-success me-2" disabled={!selectedJoinTableMetrik && selectedJoinTypeMetrik !== 'tanpa join'} /><Button label="Cancel" icon="pi pi-times" onClick={() => setShowPopupMetrik(false)} className="p-button-secondary" /></div>
         </Dialog>
-        <div className="form-group mt-4"><span className="fw-bold">Filters</span></div>
-        <div className="form-group mt-2"><span className="fw-bold">Data Limit</span></div>
-        <AddButton text="Set Top N" onClick={handleToggleTopNPopup} className="mt-2" icon={<FaChartLine size={12} />} />
+        <div className="form-group mt-4">
+          <div className="d-flex flex-col justify-content-between align-items-center">
+            <span className="fw-bold">Sorting</span>
+            {topNConfig && <small className="text-muted fst-italic">Disabled by Top N</small>}
+          </div>
+          <SortBySelector
+            sortableColumns={sortableColumns}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            orderBy={orderBy}
+            setOrderBy={setOrderBy}
+            disabled={!!topNConfig}
+          />
+        </div>
+        <div className="form-group mt-4"><span className="fw-bold">Filter</span></div>
+        <AddButton text="Data Terbanyak" onClick={handleToggleTopNPopup} className="mt-2" icon={<FaChartLine size={12} />} />
         {topNConfig && (<div className="mt-2 p-2 border rounded bg-light"><small className="d-block text-muted">Active Top N:</small><span>Top {topNConfig.value} records</span></div>)}
-        <Dialog header="Set Top N Data by Highest Values" visible={showTopNPopup} style={{ width: "60vw", maxWidth: "700px" }} onHide={() => setShowTopNPopup(false)} draggable={false} resizable={false} footer={null}><TopNSelector onTopNChange={handleTopNChange} initialTopN={topNConfig} /></Dialog>
-        <AddButton text="Add Date Range" onClick={handleToggleDateRangePopup} className="mt-2 me-2" icon={<FaCalendarDays size={12} />} />
-        <AddButton text="Add Filter" onClick={handleToggleFooter} className="mt-2" icon={<FaFilter size={12} />} />
+        <Dialog header="Tetapkan Data dengan Nilai Tertinggi" visible={showTopNPopup} style={{ width: "60vw", maxWidth: "700px" }} onHide={() => setShowTopNPopup(false)} draggable={false} resizable={false} footer={null}><TopNSelector onTopNChange={handleTopNChange} initialTopN={topNConfig} /></Dialog>
+        <AddButton text="Rentang Tanggal" onClick={handleToggleDateRangePopup} className="mt-2 me-2" icon={<FaCalendarDays size={12} />} />
+        <AddButton text="Filter Satuan" onClick={handleToggleFooter} className="mt-2" icon={<FaFilter size={12} />} />
         {dateFilter && (<div className="mt-2 p-2 border rounded bg-light"><small className="d-block text-muted">Active Date Range:</small><span>{`${dateFilter.column} BETWEEN ${dateFilter.value[0]} AND ${dateFilter.value[1]}`}</span></div>)}
         <Dialog header="Select Primary Date Range" visible={showDateRangePopup} style={{ width: "70vw", maxWidth: "800px" }} onHide={() => setShowDateRangePopup(false)} draggable={false} resizable={false} footer={null}><DateRangeSelector availableTables={tables} onDateRangeChange={handleDateRangeChange} initialDateFilter={dateFilter} /></Dialog>
         <div className="d-flex flex-column gap-2 mt-4"><Button label="Reset" className="p-button-secondary" onClick={resetForm} /><SubmitButton onClick={sendDataToAPI} text="Create" /></div>
