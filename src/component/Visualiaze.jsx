@@ -701,7 +701,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     { type: "donut", label: "Donut" },
     { type: "scatter", label: "Scatter" }, 
     { type: "heatmap", label: "Heatmap" },
-    { type: "", label: "Tabel" }, 
+    { type: "table", label: "Tabel" }, 
     { type: "card", label: "Card" }
   ];
   
