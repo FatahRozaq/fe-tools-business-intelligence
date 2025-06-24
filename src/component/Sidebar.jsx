@@ -31,15 +31,10 @@ const Sidebar = () => {
   const [processingConnections, setProcessingConnections] = useState({});
   const [currentCanvasId, setCurrentCanvasId] = useState(null);
   const [totalCanvasCount, setTotalCanvasCount] = useState(0);
-
-  const [visualizationConfig, setVisualizationConfig] = useState({
-    ...DEFAULT_CONFIG,
-  });
-
+  const [visualizationConfig, setVisualizationConfig] = useState({ ...DEFAULT_CONFIG });
   const [selectedVisualization, setSelectedVisualization] = useState(null);
   const [addNewVisualization, setAddNewVisualization] = useState(false);
   const [newVisualizationPayload, setNewVisualizationPayload] = useState(null);
-
   const [userAccessLevel, setUserAccessLevel] = useState('view');
 
   useEffect(() => {
@@ -285,10 +280,8 @@ const Sidebar = () => {
       .catch((error) => console.error("Error fetching canvases:", error));
   }, []);
 
-  const handleEtlAction = async (action, connectionName, connectionDetails) => {
-    let payload = { connection_name: connectionName };
+  const handleEtlAction = async (action, connectionName) => {
     let confirmMessage = `Are you sure you want to ${action.replace('-', ' ')} the datasource '${connectionName}'?`;
-
     if (action === 'delete') {
       confirmMessage += " This action cannot be undone.";
     }
@@ -296,30 +289,15 @@ const Sidebar = () => {
     if (!window.confirm(confirmMessage)) {
       return;
     }
-
-    if (action === 'refresh' || action === 'full-refresh') {
-      const password = window.prompt(`Please enter the password for datasource '${connectionName}' to proceed with the ${action} action.`);
-      if (!password) {
-        alert("Password is required to perform this action. Aborting.");
-        return;
-      }
-      const { database_name, ...restOfDetails } = connectionDetails;
-      payload = {
-        ...restOfDetails,
-        database: database_name,
-        password: password,
-        connection_name: connectionName,
-      };
-    }
-
+    
     setProcessingConnections(prev => ({ ...prev, [connectionName]: action }));
     try {
-      await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/${action}`, payload);
+      await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/${action}`, { connection_name: connectionName });
       alert(`Datasource '${connectionName}' action '${action}' was successful!`);
       fetchAllTables();
     } catch (error) {
       console.error(`Error during ${action} for ${connectionName}:`, error);
-      const errorMessage = error.response?.data?.message || `Failed to ${action} datasource '${connectionName}'. See console for details.`;
+      const errorMessage = error.response?.data?.message || `Failed to ${action} datasource '${connectionName}'.`;
       alert(errorMessage);
     } finally {
       setProcessingConnections(prev => {
@@ -329,6 +307,55 @@ const Sidebar = () => {
       });
     }
   };
+
+  const handleGlobalEtlAction = async (action) => {
+    const actionText = action.replace('-', ' ');
+    if (!window.confirm(`Are you sure you want to ${actionText} ALL datasources? This may take a long time.`)) {
+        return;
+    }
+
+    const allDatasources = Object.keys(groupedTables);
+    if (allDatasources.length === 0) {
+        alert("No datasources to process.");
+        return;
+    }
+    
+    setProcessingConnections(prev => {
+        const newProcessing = { ...prev };
+        allDatasources.forEach(name => {
+            newProcessing[name] = action;
+        });
+        return newProcessing;
+    });
+
+    try {
+      const promises = allDatasources.map(connectionName =>
+        axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/etl/${action}`, { connection_name: connectionName })
+      );
+
+      const results = await Promise.allSettled(promises);
+      
+      let successCount = 0;
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          successCount++;
+          console.log(`Action '${action}' for ${allDatasources[index]} was successful.`);
+        } else {
+          console.error(`Action '${action}' for ${allDatasources[index]} failed:`, result.reason.response?.data?.message || result.reason.message);
+        }
+      });
+      
+      alert(`Global action '${actionText}' finished. Successful: ${successCount}/${allDatasources.length}.`);
+      fetchAllTables();
+
+    } catch (error) {
+       console.error(`A critical error occurred during global action ${action}:`, error);
+       alert(`A critical error occurred during global action. See console for details.`);
+    } finally {
+       setProcessingConnections({});
+    }
+  };
+
 
   const renderSidebarContent = () => {
     if (loading) {
@@ -379,6 +406,14 @@ const Sidebar = () => {
           </button>
         </div>
         <hr className="full-line" />
+        <div className="px-2 my-2 d-flex w-100 gap-2">
+          <button className="btn btn-sm btn-outline-secondary w-50 h-100 d-flex align-items-center justify-content-center gap-1" onClick={() => handleGlobalEtlAction('refresh')}>
+            <FaSync /> Refresh Data
+          </button>
+          <button className="btn btn-sm btn-outline-secondary w-50 h-100 d-flex align-items-center justify-content-center gap-1" onClick={() => handleGlobalEtlAction('full-refresh')}>
+            <FaSync /> Full Refresh
+          </button>
+        </div>
         <div className="px-2 my-2 d-flex flex-column gap-2">
           <span className="p-input-icon-left w-100 pl-2">
             <InputText
@@ -389,7 +424,6 @@ const Sidebar = () => {
             />
           </span>
         </div>
-
         <hr className="full-line" />
         <div className="accordion" id="groupAccordion">
           {filteredGroupedEntries.map(([prefix, groupData], groupIndex) => (
@@ -411,10 +445,10 @@ const Sidebar = () => {
                     <FaCogs />
                   </button>
                   <ul className="dropdown-menu">
-                    <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('refresh', prefix, groupData.datasource_info); }}>Refresh</a></li>
-                    <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('full-refresh', prefix, groupData.datasource_info); }}>Full Refresh</a></li>
+                    <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('refresh', prefix); }}>Refresh</a></li>
+                    <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('full-refresh', prefix); }}>Full Refresh</a></li>
                     <li><hr className="dropdown-divider" /></li>
-                    <li><a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('delete', prefix, {}); }}>Delete</a></li>
+                    <li><a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); handleEtlAction('delete', prefix); }}>Delete</a></li>
                   </ul>
                 </div>
               </h2>
@@ -492,7 +526,6 @@ const Sidebar = () => {
   return (
     <>
       {userAccessLevel !== 'view' && renderSidebarContent()}
-
       <Header
         currentCanvasIndex={currentCanvasIndex}
         setCurrentCanvasIndex={setCurrentCanvasIndex}
@@ -502,8 +535,7 @@ const Sidebar = () => {
         totalCanvasCount={totalCanvasCount}
         userAccessLevel={userAccessLevel}
       />
-
-      {userAccessLevel != 'view' && (
+      {userAccessLevel !== 'view' && (
         <>
           <SidebarCanvas
             currentCanvasIndex={currentCanvasIndex}
@@ -534,7 +566,6 @@ const Sidebar = () => {
           />
         </>
       )}
-
       <Canvas
         data={canvasData}
         query={addNewVisualization ? canvasQuery : ""}

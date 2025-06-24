@@ -40,13 +40,19 @@ function App() {
 
   // Function untuk handle successful registration/login
   const handleAuthSuccess = () => {
-    const accessLevel = localStorage.getItem('access');
     setIsAuthenticated(true);
+    const accessLevel = localStorage.getItem('access');
+    setUserAccessLevel(accessLevel || 'none');
   };
 
   // Function untuk beralih antara login dan register
   const switchAuthView = (view) => {
     setAuthView(view);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthView('login');
   };
 
   // Jika belum authenticated, tampilkan halaman auth (login/register)

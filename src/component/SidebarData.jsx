@@ -48,6 +48,7 @@ const SidebarData = ({
   const [activeTables, setActiveTables] = useState([]);
   const [sortBy, setSortBy] = useState('');
   const [orderBy, setOrderBy] = useState('asc');
+  const [availableColumns, setAvailableColumns] = useState([]);
 
   useEffect(() => {
     if (editingPayload) {
@@ -116,18 +117,56 @@ const SidebarData = ({
     setReadyToCreateVisualization(true);
   };
 
-  useEffect(() => {
-    axios
-      .get(`${config.API_BASE_URL}/api/kelola-dashboard/tables`)
-      .then((response) => {
-        if (response.data.success && Array.isArray(response.data.data)) {
-          setTables(response.data.data);
-        } else {
-          showToast("error", "Error", "Failed to fetch tables");
+  // useEffect(() => {
+  //   axios
+  //     .get(`${config.API_BASE_URL}/api/kelola-dashboard/tables`)
+  //     .then((response) => {
+  //       if (response.data.success && Array.isArray(response.data.data)) {
+  //         setTables(response.data.data);
+  //       } else {
+  //         // showToast("error", "Error", "Failed to fetch tables");
+  //       }
+  //     })
+  //     // .catch(() => showToast("error", "Error", "Failed to load tables"));
+  // }, []);
+
+    useEffect(() => {
+    if (activeTables.length > 0) {
+      const fetchColumnsForTables = async () => {
+        const columnPromises = activeTables.map(tableName =>
+          axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${tableName}`)
+        );
+  
+        try {
+          const responses = await Promise.all(columnPromises);
+          const allColumns = [];
+          
+          responses.forEach((response, index) => {
+            if (response.data.success) {
+              const fullTableName = activeTables[index];
+              const displayTableName = formatDisplayName(fullTableName);
+              
+              response.data.data.forEach(col => {
+                const columnName = col.name || col.column_name;
+                allColumns.push({
+                  label: `${displayTableName}.${columnName}`, 
+                  value: `${fullTableName}.${columnName}`   
+                });
+              });
+            }
+          });
+          setAvailableColumns(allColumns);
+        } catch (error) {
+          console.error("Failed to fetch columns for active tables", error);
+          setAvailableColumns([]);
         }
-      })
-      .catch(() => showToast("error", "Error", "Failed to load tables"));
-  }, []);
+      };
+  
+      fetchColumnsForTables();
+    } else {
+      setAvailableColumns([]);
+    }
+  }, [activeTables]); 
 
   useEffect(() => {
     setDragOver({
@@ -563,10 +602,12 @@ const SidebarData = ({
         <AddButton text="Rentang Tanggal" onClick={handleToggleDateRangePopup} className="mt-2 me-2" icon={<FaCalendarDays size={12} />} />
         <AddButton text="Filter Satuan" onClick={handleToggleFooter} className="mt-2" icon={<FaFilter size={12} />} />
         {dateFilter && (<div className="mt-2 p-2 border rounded bg-light"><small className="d-block text-muted">Active Date Range:</small><span>{`${dateFilter.column} BETWEEN ${dateFilter.value[0]} AND ${dateFilter.value[1]}`}</span></div>)}
-        <Dialog header="Select Primary Date Range" visible={showDateRangePopup} style={{ width: "70vw", maxWidth: "800px" }} onHide={() => setShowDateRangePopup(false)} draggable={false} resizable={false} footer={null}><DateRangeSelector availableTables={tables} onDateRangeChange={handleDateRangeChange} initialDateFilter={dateFilter} /></Dialog>
-        <div className="d-flex flex-column gap-2 mt-4"><Button label="Reset" className="p-button-secondary" onClick={resetForm} /><SubmitButton onClick={sendDataToAPI} text="Create" /></div>
+        <Dialog header="Select Primary Date Range" visible={showDateRangePopup} style={{ width: "70vw", maxWidth: "800px" }} onHide={() => setShowDateRangePopup(false)} draggable={false} resizable={false} footer={null}>
+          <DateRangeSelector availableTables={activeTables} onDateRangeChange={handleDateRangeChange} initialDateFilter={dateFilter} />
+        </Dialog>
+        <div className="d-flex flex-column gap-2 mt-4"><Button label="Reset" className="p-button-secondary" onClick={resetForm} /><SubmitButton onClick={sendDataToAPI} className="p-button-primary" text="Create" /></div>
       </div>
-      {showFooter && (<FooterBar filters={filters} setFilters={setFilters} handleApplyFilters={handleApplyFilters} handleToggleFooter={handleToggleFooter} availableTables={tables} currentTable={selectedTable || ''} />)}
+      {showFooter && (<FooterBar filters={filters} setFilters={setFilters} handleApplyFilters={handleApplyFilters} handleToggleFooter={handleToggleFooter} availableColumns={availableColumns} />)}
       <style jsx>{`
         .join-badge { background-color: #e3f2fd; color: #1565c0; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; text-transform: capitalize; }
         .sidebar-2 { max-height: 100vh; overflow-y: auto; padding-bottom: 120px; margin-top: 15px;}

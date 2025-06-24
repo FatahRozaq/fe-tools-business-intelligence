@@ -6,21 +6,17 @@ import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import axios from 'axios';
 import config from '../config';
-import { format, subDays, subMonths, subYears } from 'date-fns';
+import { format, subDays, subYears } from 'date-fns';
 
 const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilter }) => {
-  const [selectedTable, setSelectedTable] = useState(initialDateFilter?.selectedTable || '');
+  const [selectedTable, setSelectedTable] = useState('');
   const [dateColumns, setDateColumns] = useState([]);
-  const [selectedDateColumn, setSelectedDateColumn] = useState(initialDateFilter?.columnName || '');
-  const [dateRangeType, setDateRangeType] = useState(initialDateFilter?.dateRangeType || 'custom');
-  const [customStartDate, setCustomStartDate] = useState(
-    initialDateFilter?.value?.[0] ? new Date(initialDateFilter.value[0]) : null
-  );
-  const [customEndDate, setCustomEndDate] = useState(
-    initialDateFilter?.value?.[1] ? new Date(initialDateFilter.value[1]) : null
-  );
-  const [dataGranularity, setDataGranularity] = useState(initialDateFilter?.granularity || 'asis');
-  const [displayFormat, setDisplayFormat] = useState(initialDateFilter?.displayFormat || 'auto');
+  const [selectedDateColumn, setSelectedDateColumn] = useState('');
+  const [dateRangeType, setDateRangeType] = useState('custom');
+  const [customStartDate, setCustomStartDate] = useState(null);
+  const [customEndDate, setCustomEndDate] = useState(null);
+  const [dataGranularity, setDataGranularity] = useState('asis');
+  const [displayFormat, setDisplayFormat] = useState('auto');
 
   const displayFormatOptions = [
     { label: "Auto (Smart Detection)", value: "auto" },
@@ -47,52 +43,43 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
     { label: "Group by Month", value: "monthly" },
   ];
 
-  const tableOptions = availableTables.map(t => ({ label: t, value: t }));
+  const formatDisplayName = (tableName) => {
+    if (!tableName) return "";
+    const parts = tableName.split('__');
+    return parts.length > 1 ? parts[1].replace(/_/g, ' ') : tableName.replace(/_/g, ' ');
+  };
+  
+  const tableOptions = availableTables.map(t => ({ label: formatDisplayName(t), value: t }));
 
   const isDateType = (columnType) => {
-    const dateTypes = [
-      'date', 'datetime', 'timestamp', 'time',
-      'DATE', 'DATETIME', 'TIMESTAMP', 'TIME',
-      'datetime2', 'smalldatetime', 'datetimeoffset', 
-      'DATETIME2', 'SMALLDATETIME', 'DATETIMEOFFSET',
-      'timestamptz', 'timetz', 
-      'TIMESTAMPTZ', 'TIMETZ'
-    ];
-    return dateTypes.some(type => 
-      columnType.toLowerCase().includes(type.toLowerCase())
-    );
+    const dateTypes = [ 'date', 'datetime', 'timestamp', 'time', 'datetime2', 'smalldatetime', 'datetimeoffset', 'timestamptz', 'timetz' ];
+    const lowerCaseType = columnType.toLowerCase();
+    return dateTypes.some(type => lowerCaseType.includes(type));
   };
 
   useEffect(() => {
     if (initialDateFilter) {
         const tableName = initialDateFilter.column?.split('.')[0];
         const columnName = initialDateFilter.column?.split('.')[1];
-        if (tableName) setSelectedTable(tableName);
         
-        if (initialDateFilter.dateRangeType) setDateRangeType(initialDateFilter.dateRangeType);
-        if (initialDateFilter.granularity) setDataGranularity(initialDateFilter.granularity);
-        else setDataGranularity('asis');
-
-        if (initialDateFilter.displayFormat) setDisplayFormat(initialDateFilter.displayFormat);
-        else setDisplayFormat('auto');
+        if (tableName && availableTables.includes(tableName)) {
+            setSelectedTable(tableName);
+            fetchDateColumns(tableName, columnName);
+        }
+        
+        setDateRangeType(initialDateFilter.dateRangeType || 'custom');
+        setDataGranularity(initialDateFilter.granularity || 'asis');
+        setDisplayFormat(initialDateFilter.displayFormat || 'auto');
 
         if (initialDateFilter.value && Array.isArray(initialDateFilter.value) && initialDateFilter.value.length === 2) {
             setCustomStartDate(new Date(initialDateFilter.value[0]));
             setCustomEndDate(new Date(initialDateFilter.value[1]));
         }
-         if (columnName) {
-            if (tableName) {
-                 fetchDateColumns(tableName, columnName); 
-            } else {
-                setSelectedDateColumn(columnName);
-            }
-        }
     } else {
-      setDataGranularity('asis');
-      setDisplayFormat('auto'); 
+      resetLocalState();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialDateFilter]); 
+  }, [initialDateFilter, availableTables]); 
 
 
   useEffect(() => {
@@ -104,38 +91,43 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTable]);
+  
+  const resetLocalState = () => {
+    setSelectedTable('');
+    setSelectedDateColumn('');
+    setDateRangeType('custom');
+    setCustomStartDate(null);
+    setCustomEndDate(null);
+    setDataGranularity('asis');
+    setDisplayFormat('auto');
+    setDateColumns([]);
+  };
 
 
   const fetchDateColumns = async (tableName, preselectColumnName = null) => {
     if (!tableName) return;
     try {
-      const response = await axios.get(
-        `${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${tableName}`
-      );
-      
+      const response = await axios.get(`${config.API_BASE_URL}/api/kelola-dashboard/fetch-column/${tableName}`);
       if (response.data.success) {
         const columns = response.data.data;
-        const allOptions = columns.map(col => {
-          const columnName = col.column_name || col.COLUMN_NAME || col.name || col.NAME || col.Field || col.field || '';
-          const dataType = col.data_type || col.column_type || col.type || col.DATA_TYPE || col.COLUMN_TYPE || col.TYPE || col.Type || '';
-          return { label: columnName, value: columnName, dataType: dataType };
-        });
-        
-        const dateOnlyColumns = allOptions.filter(opt => opt.dataType && isDateType(opt.dataType));
+        const dateOnlyColumns = columns
+          .map(col => ({
+              label: col.name || col.column_name,
+              value: col.name || col.column_name,
+              dataType: col.type || col.data_type,
+          }))
+          .filter(opt => opt.dataType && isDateType(opt.dataType));
         
         const finalOptions = dateOnlyColumns.map(col => ({
             label: `${col.label} (${col.dataType})`,
             value: col.value
-          }));
+        }));
         
         setDateColumns(finalOptions);
         
         if (preselectColumnName && finalOptions.some(opt => opt.value === preselectColumnName)) {
             setSelectedDateColumn(preselectColumnName);
-        } else if (finalOptions.length > 0 && !preselectColumnName) {
-            setSelectedDateColumn('');
-        }
-         else {
+        } else {
             setSelectedDateColumn('');
         }
         
@@ -168,32 +160,18 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
         alert("Please select a start and end date for custom range.");
         return;
       }
-      startDate = format(customStartDate, 'yyyy-MM-dd');
-      endDate = format(customEndDate, 'yyyy-MM-dd');
+      startDate = format(customStartDate, 'yyyy-MM-dd HH:mm:ss');
+      endDate = format(customEndDate, 'yyyy-MM-dd HH:mm:ss');
     } else {
-      endDate = format(today, 'yyyy-MM-dd'); 
+      endDate = format(today, 'yyyy-MM-dd HH:mm:ss'); 
       switch (dateRangeType) {
-        case 'last7days':
-          startDate = format(subDays(today, 6), 'yyyy-MM-dd');
-          break;
-        case 'last30days':
-          startDate = format(subDays(today, 29), 'yyyy-MM-dd');
-          break;
-        case 'last3months':
-          startDate = format(subDays(today, 89), 'yyyy-MM-dd');
-          break;
-        case 'last4months':
-          startDate = format(subDays(today, 119), 'yyyy-MM-dd');
-          break;
-        case 'last6months':
-          startDate = format(subDays(today, 179), 'yyyy-MM-dd');
-          break;
-        case 'last1year':
-          startDate = format(subYears(today, 1), 'yyyy-MM-dd');
-          break;
-        default:
-          onDateRangeChange(null);
-          return;
+        case 'last7days': startDate = format(subDays(today, 6), 'yyyy-MM-dd HH:mm:ss'); break;
+        case 'last30days': startDate = format(subDays(today, 29), 'yyyy-MM-dd HH:mm:ss'); break;
+        case 'last3months': startDate = format(subDays(today, 89), 'yyyy-MM-dd HH:mm:ss'); break;
+        case 'last4months': startDate = format(subDays(today, 119), 'yyyy-MM-dd HH:mm:ss'); break;
+        case 'last6months': startDate = format(subDays(today, 179), 'yyyy-MM-dd HH:mm:ss'); break;
+        case 'last1year': startDate = format(subYears(today, 1), 'yyyy-MM-dd HH:mm:ss'); break;
+        default: onDateRangeChange(null); return;
       }
     }
 
@@ -212,14 +190,7 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
   };
   
   const handleClearDateRange = () => {
-    setSelectedTable('');
-    setSelectedDateColumn('');
-    setDateRangeType('custom');
-    setCustomStartDate(null);
-    setCustomEndDate(null);
-    setDataGranularity('asis');
-    setDisplayFormat('auto');
-    setDateColumns([]);
+    resetLocalState();
     onDateRangeChange(null); 
   };
 
@@ -244,7 +215,6 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
     }
   }, [dateRangeType]);
 
-
   return (
     <div className="p-card p-3 mb-3">
       <h6 className="mb-2">Primary Date Range & Grouping</h6>
@@ -255,12 +225,11 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
             inputId="tableSelect"
             value={selectedTable}
             options={tableOptions}
-            onChange={(e) => {
-              setSelectedTable(e.value);
-              setSelectedDateColumn(''); 
-            }}
+            onChange={(e) => setSelectedTable(e.value)}
             placeholder="Select Table"
             filter
+            disabled={tableOptions.length === 0}
+            emptyMessage={availableTables.length > 0 ? "No active tables" : "Add dimension/metric first"}
           />
         </div>
         <div className="field col-12 md:col-4 lg:col-3">
@@ -295,7 +264,6 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
             disabled={!selectedDateColumn}
           />
         </div>
-
         <div className="field col-12 md:col-4 lg:col-3">
           <label htmlFor="displayFormatSelect">Display Format</label>
           <Dropdown
@@ -306,7 +274,6 @@ const DateRangeSelector = ({ availableTables, onDateRangeChange, initialDateFilt
             disabled={!selectedDateColumn || dataGranularity === 'asis'}
           />
         </div>
-
         {dateRangeType === 'custom' && (
           <>
             <div className="field col-12 md:col-6">

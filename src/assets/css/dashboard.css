@@ -78,7 +78,7 @@
 .sidebar {
     width: 250px;
     min-width: 250px;
-    margin-top: 20px;
+    margin-top: 15px;
     transition: all 0.3s;
     padding: 10px; /* Gabungkan padding dari definisi kedua */
     overflow-y: auto; /* Ubah dari hidden ke auto untuk scrolling */
@@ -294,7 +294,11 @@
     border-top: 2px solid #ddd;
     padding: 15px;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 100000000;
+    z-index: 1000;
+}
+
+:global(.p-dropdown-panel) {
+    z-index: 1001 !important; /* Lebih tinggi dari footer-bar */
 }
 
 .footer-bar-header {

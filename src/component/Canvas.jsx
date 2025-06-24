@@ -136,7 +136,6 @@ useEffect(() => {
         const data = response.data;
         if (data.success && data.data) {
           const canvasId = data.data.id_canvas;
-          console.log(canvasId + "lah")
           setCurrentCanvasIndex(0); // Karena ini canvas pertama
           setCurrentCanvasId(canvasId);
           localStorage.setItem("currentCanvasIndex", "0");
