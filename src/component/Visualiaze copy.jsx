@@ -116,11 +116,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       setActiveVisualizationType(visualizationType);
     }
   }, [visualizationType]);
-
   const isInitialMount = useRef(true);
-  
-  
-
   const getTextStyleProperties = useCallback((styleName) => {
     const properties = {
       fontWeight: "normal",
@@ -134,8 +130,6 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     }
     return properties;
   }, []);
-
-  
 
   const getChartOptions = useCallback((chartType, categories, chartColors) => {
     const vc = visualizationConfig || {}; 
@@ -295,10 +289,9 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
             axisBorder: { show: true, color: vc.gridColor || "#E0E0E0" },
             axisTicks: { show: true, color: vc.gridColor || "#E0E0E0" }
         };
-        options.yaxis = { // Y-axis labels come from series names in heatmap
+        options.yaxis = {
             labels: {
                 style: { fontSize: `${vc.yAxisFontSize || 12}px`, fontFamily: vc.yAxisFontFamily || "Arial", colors: vc.yAxisFontColor || "#000000" },
-                // No specific formatter needed here as series names are used by default.
             },
         };
         options.plotOptions = {
@@ -307,7 +300,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
                 radius: vc.heatmapRadius || 0,
                 enableShades: vc.heatmapEnableShades !== undefined ? vc.heatmapEnableShades : true,
                 colorScale: {
-                    ranges: vc.heatmapColorRanges || [], // User can define vc.heatmapColorRanges in config
+                    ranges: vc.heatmapColorRanges || [],
                 },
                  useFillColorAsStroke: vc.heatmapUseFillColorAsStroke || false
             }
@@ -333,7 +326,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       };
       options.yaxis = {
         title: {
-            text: vc.valueTitle || "", offsetY: 0, // Provide a way to set Y-axis title
+            text: vc.valueTitle || "", offsetY: 0,
             style: { fontSize: `${vc.valueTitleFontSize || 14}px`, fontWeight: getTextStyleProperties(vc.valueTitleTextStyle).fontWeight, fontFamily: vc.valueTitleFontFamily || "Arial", fontStyle: getTextStyleProperties(vc.valueTitleTextStyle).fontStyle, color: vc.valueTitleFontColor || "#000000" },
         },
         labels: {
@@ -384,11 +377,11 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
 
     const loadRawData = async () => {
       try {
-        // Cek jika ada id_visualization di payload, jika tidak, mungkin tidak perlu fetch
         if (!requestPayload.id_visualization && !requestPayload.query) {
             setStatus({ loading: false, error: "Tidak ada data untuk ditampilkan." });
             return;
         }
+
         const res = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/visualisasi-data`, requestPayload);
         const data = res.data?.data;
 
@@ -397,7 +390,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         }
         const [firstRow] = data;
         const keys = Object.keys(firstRow);
-        if (keys.length < 1) { // Card can have 1 col, table can have 1, others need >= 2
+        if (keys.length < 1) {
             if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
                  throw new Error("Data harus memiliki minimal dua kolom (label dan setidaknya satu nilai) untuk tipe chart ini.");
             }
@@ -414,7 +407,6 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       }
     };
     loadRawData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestPayload]);
 
   const debouncedUpdateVisualization = useDebouncedCallback(
