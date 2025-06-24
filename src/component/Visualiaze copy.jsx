@@ -127,9 +127,9 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     }
   }, [visualizationType]);
 
-  useEffect(() => {
-    setLocalConfig(visualizationConfig || {});
-  }, [visualizationConfig]);
+  const isInitialMount = useRef(true);
+  
+  
 
   const getTextStyleProperties = useCallback((styleName) => {
     const properties = {
@@ -404,10 +404,10 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         }
         const [firstRow] = data;
         const keys = Object.keys(firstRow);
-        if (keys.length < 1) {
-          if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
-            throw new Error("Data harus memiliki minimal dua kolom untuk tipe chart ini.");
-          }
+        if (keys.length < 1) { // Card can have 1 col, table can have 1, others need >= 2
+            if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
+                 throw new Error("Data harus memiliki minimal dua kolom (label dan setidaknya satu nilai) untuk tipe chart ini.");
+            }
         }
         
         setFetchedData({ raw: data, keys: keys });
