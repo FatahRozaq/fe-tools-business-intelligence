@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import config from "../config";
 import { GrDatabase } from "react-icons/gr";
-import { FaFloppyDisk } from "react-icons/fa6";
+import { FaFloppyDisk, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { MdCancel } from "react-icons/md";
 
 const AddDatasource = ({ onCancel, onSaveSuccess }) => {
@@ -18,6 +18,7 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const dbTypes = [
     { value: "mysql", label: "MySQL" },
@@ -46,6 +47,10 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
     } else {
       setFormData({ ...formData, [name]: value });
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = (e) => {
@@ -190,15 +195,29 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
           <label>
             Password <span className="text-danger">*</span>
           </label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.password ? 'is-invalid' : ''}`}
-          />
-           {errors.password && <div className="invalid-feedback">{errors.password[0]}</div>}
+          <div className="input-group">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+              style={{ borderRight: 'none' }}
+            />
+            <span className="input-group-text" style={{ backgroundColor: 'transparent', borderLeft: 'none', cursor: 'pointer' }}>
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="btn btn-link p-0 text-muted"
+                style={{ border: 'none', background: 'none' }}
+                tabIndex="-1"
+              >
+                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+              </button>
+            </span>
+          </div>
+          {errors.password && <div className="invalid-feedback">{errors.password[0]}</div>}
         </div>
 
         <button

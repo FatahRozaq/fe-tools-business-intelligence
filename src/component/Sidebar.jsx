@@ -552,18 +552,6 @@ const Sidebar = () => {
         newVisualizationPayload={newVisualizationPayload}
         userAccessLevel={userAccessLevel}
       />
-      <style jsx>{`
-        .sidebar {
-          margin-top: 0px;
-          overflow-y: auto;
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-          padding-bottom: 120px;
-        }
-        .sidebar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </>
   );
 };
