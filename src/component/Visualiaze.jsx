@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "react-apexcharts";
 import axios from "axios";
-import config from "../config";
+import config from "../config"; // Pastikan path ini benar
 import { useDebouncedCallback } from 'use-debounce';
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 
+// Card Component for displaying single value
 const CardComponent = ({ data, labelKey, valueKey, visualizationConfig}) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data card tidak tersedia.</div>;
@@ -62,6 +62,7 @@ const CardComponent = ({ data, labelKey, valueKey, visualizationConfig}) => {
   );
 };
 
+// DataTable Component
 const DataTableComponent = ({ data, query }) => {
   if (!data || data.length === 0) {
     return <div className="p-4 text-gray-500">Data tabel tidak tersedia.</div>;
@@ -102,34 +103,27 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   const [fetchedData, setFetchedData] = useState(null);
   const [visualizationData, setVisualizationData] = useState(null);
   const [status, setStatus] = useState({ loading: true, error: null });
-  const [controlsVisible, setControlsVisible] = useState(false);
   
   const [savedVisualizationId, setSavedVisualizationId] = useState(requestPayload?.id_visualization || null);
   const [activeVisualizationType, setActiveVisualizationType] = useState(
     visualizationType || requestPayload?.visualizationType || "bar"
   );
-  const [localConfig, setLocalConfig] = useState(visualizationConfig || {});
-
+  // Ref ini akan melacak apakah ini adalah render pertama
   const isInitialMount = useRef(true);
 
   const [userAccessLevel, setUserAccessLevel] = useState('view');
   useEffect(() => {
       const access = localStorage.getItem('access') || 'view' ;
       setUserAccessLevel(access);
-      if (access !== 'view') {
-          setControlsVisible(true);
-      }
     }, []);
 
+  const skipConfigUpdateRef = useRef(true);
+  
   useEffect(() => {
     if (visualizationType) {
       setActiveVisualizationType(visualizationType);
     }
   }, [visualizationType]);
-
-  useEffect(() => {
-    setLocalConfig(visualizationConfig || {});
-  }, [visualizationConfig]);
 
   const getTextStyleProperties = useCallback((styleName) => {
     const properties = {
@@ -146,7 +140,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   }, []);
 
   const getChartOptions = useCallback((chartType, categories, chartColors) => {
-    const vc = localConfig || {}; 
+    const vc = visualizationConfig || {}; 
 
     const titleTextStyleProps = getTextStyleProperties(vc.titleTextStyle);
     const subtitleTextStyleProps = getTextStyleProperties(vc.subtitleTextStyle);
@@ -238,7 +232,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       },
       stroke: {
         show: vc.borderType !== "none",
-        width: vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (chartType === 'line' || chartType === 'area' || chartType === 'combo' ? 4 : 1),
+        width: vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (chartType === 'line' ? 4 : 1),
         colors: vc.borderType !== "none" ? [vc.borderColor || "#000000"] : undefined, 
         curve: 'smooth', 
         lineCap: 'butt',
@@ -288,7 +282,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         options.dataLabels.textAnchor = 'middle';
         options.dataLabels.formatter = function(val, opts) {
           const seriesName = opts.w.globals.labels[opts.seriesIndex];
-          const percentage = opts.w.globals.seriesPercent[opts.seriesIndex][0];
+          const percentage = opts.w.globals.seriesPercent[opts.seriesIndex][0]; // Assuming single series for pie data
           return `${seriesName}: ${percentage.toFixed(1)}% (${(typeof val === 'number' ? val.toLocaleString() : val)})`;
         }
       }
@@ -365,7 +359,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         }
       }
       
-      if (chartType === "line" || chartType === 'combo' || chartType === 'area') {
+      if (chartType === "line") {
         options.stroke.width = vc.borderWidth !== undefined && vc.borderType !== "none" ? vc.borderWidth : (vc.lineWidth || 4);
         options.markers = { size: vc.markerSize || 5, hover: { sizeOffset: vc.markerHoverSizeOffset || 2 } };
       } else if (chartType === "scatter") {
@@ -374,7 +368,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       }
     }
     return options;
-  }, [localConfig, getTextStyleProperties, currentCanvasId, currentCanvasIndex]);
+  }, [visualizationConfig, getTextStyleProperties, currentCanvasId, currentCanvasIndex]);
 
   useEffect(() => {
     setFetchedData(null);
@@ -405,9 +399,9 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         const [firstRow] = data;
         const keys = Object.keys(firstRow);
         if (keys.length < 1) {
-          if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
-            throw new Error("Data harus memiliki minimal dua kolom untuk tipe chart ini.");
-          }
+        if (activeVisualizationType !== 'card' && activeVisualizationType !== 'table' && keys.length < 2) {
+             throw new Error("Data harus memiliki minimal dua kolom untuk tipe chart ini.");
+        }
         }
         
         setFetchedData({ raw: data, keys: keys });
@@ -421,7 +415,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       }
     };
     loadRawData();
-  }, [requestPayload]);
+  }, [requestPayload]); // Hanya bergantung pada requestPayload
 
   const debouncedSaveOrUpdateVisualization = useDebouncedCallback(
     async (vizId, type, optionsToSave, colorsToSave, currentQuery, configToSave) => {
@@ -430,7 +424,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
             query: currentQuery, 
             config: { ...configToSave, colors: colorsToSave },
         };
-
+        // Hapus options jika tidak relevan untuk tipe visualisasi
         if (type === "table" || type === "card") {
             delete payload.config.visualizationOptions;
         } else {
@@ -446,6 +440,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
                 };
                 const saveResponse = await axios.post(`${config.API_BASE_URL}/api/kelola-dashboard/save-visualization`, savePayload);
                 if (saveResponse.data?.data?.id) {
+                    // Simpan ID baru yang didapat dari server ke state
                     setSavedVisualizationId(saveResponse.data.data.id);
                 }
             
@@ -454,7 +449,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
             setStatus(prev => ({...prev, error: "Gagal menyimpan perubahan."}));
         }
     },
-    1500
+    1500 // Debounce time in ms
   );
 
   const detectDataStructure = (rawData) => {
@@ -577,6 +572,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     return { series, categories: sortedLabels };
   };
 
+  // useEffect utama untuk memproses data dan menyimpan perubahan konfigurasi
   useEffect(() => {
     if (!fetchedData || !fetchedData.raw || status.loading) {
       if (!status.loading && !fetchedData && visualizationData) setVisualizationData(null);
@@ -586,13 +582,16 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     const { raw: rawData, keys } = fetchedData;
     const dataStructure = detectDataStructure(rawData);
 
+    console.log('Debug - Raw Data:', rawData);
+    console.log('Debug - Keys:', keys);
+
     if (!dataStructure) {
       setStatus(prev => ({ ...prev, error: "Struktur data tidak dapat dideteksi.", loading: false }));
       return;
     }
 
     let labelKey, valueKeys, categories, chartSeries;
-    const currentChartColors = localConfig?.colors || ["#4CAF50", "#FF9800", "#2196F3", "#F44336", "#9C27B0", "#00BCD4"];
+    const currentChartColors = visualizationConfig?.colors || ["#4CAF50", "#FF9800", "#2196F3", "#F44336", "#9C27B0", "#00BCD4"];
 
     const parseValue = val => {
       const parsed = typeof val === "number" ? val : parseFloat(String(val).replace(/,/g, ''));
@@ -604,28 +603,16 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         labelKey = detectedLabelKey;
         const transformed = transformGroupedData(rawData, labelKey, categoryKey, valueKey);
         categories = transformed.categories;
-        valueKeys = transformed.series.map(s => s.name);
-
-        if (activeVisualizationType === 'combo') {
-            chartSeries = transformed.series.map((s, index) => {
-                const seriesCfg = localConfig.seriesConfig?.find(sc => sc.name === s.name);
-                return {
-                    ...s,
-                    type: seriesCfg?.type || 'bar',
-                    color: currentChartColors[index % currentChartColors.length]
-                };
-            });
-        } else {
-            chartSeries = transformed.series.map((s, index) => ({
-                ...s,
-                color: currentChartColors[index % currentChartColors.length]
-            }));
-        }
+        chartSeries = transformed.series.map((series, index) => ({
+          ...series,
+          color: currentChartColors[index % currentChartColors.length]
+        }));
+        valueKeys = [valueKey];
     } else {
         labelKey = dataStructure.structure.labelKey;
         valueKeys = dataStructure.structure.valueKeys;
         if ((activeVisualizationType !== 'card' && activeVisualizationType !== 'table') && valueKeys.length === 0) {
-          setStatus(prev => ({ ...prev, error: "Data tidak cukup untuk chart. Perlu minimal 1 kolom nilai.", loading: false }));
+          setStatus(prev => ({ ...prev, error: "DData tidak cukup untuk chart. Perlu minimal 1 kolom nilai.", loading: false }));
           setVisualizationData({ rawData, labelKey, valueKeys:[], series:[], options:{}, currentType: activeVisualizationType, colors: [] });
           return;
         }
@@ -635,37 +622,27 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
         const parsed = typeof val === "number" ? val : parseFloat(String(val).replace(/,/g, ''));
         return isNaN(parsed) ? (activeVisualizationType === 'heatmap' || activeVisualizationType === 'scatter' ? null : 0) : parsed;
         };
-        
-        if (activeVisualizationType === "combo") {
-            chartSeries = valueKeys.map((key, index) => {
-                const seriesCfg = localConfig.seriesConfig?.find(s => s.name === key);
-                return {
-                    name: key,
-                    type: seriesCfg?.type || 'bar',
-                    data: rawData.map(item => parseValue(item[key])),
-                    color: currentChartColors[index % currentChartColors.length]
-                };
-            });
-        } else if (activeVisualizationType === "pie" || activeVisualizationType === "donut") {
-          if (valueKeys.length > 0) {
-            chartSeries = rawData.map(item => parseValue(item[valueKeys[0]]));
-          }
-        } else if (activeVisualizationType === "heatmap") {
-          chartSeries = valueKeys.map((valueKeyName) => ({
-            name: valueKeyName,
-            data: rawData.map(row => ({
-              x: String(row[labelKey]),
-              y: parseValue(row[valueKeyName])
-            }))
-          }));
-        } else {
-          chartSeries = valueKeys.map((key, index) => ({
-            name: key,
-            data: rawData.map(item => parseValue(item[key])),
-            color: currentChartColors[index % currentChartColors.length]
-          }));
-        }
+
+        if (activeVisualizationType === "pie" || activeVisualizationType === "donut") {
+      if (valueKeys.length > 0) {
+        chartSeries = rawData.map(item => parseValue(item[valueKeys[0]]));
+      }
+    } else if (activeVisualizationType === "heatmap") {
+      chartSeries = valueKeys.map((valueKeyName) => ({
+        name: valueKeyName,
+        data: rawData.map(row => ({
+          x: String(row[labelKey]),
+          y: parseValue(row[valueKeyName])
+        }))
+      }));
+    } else {
+      chartSeries = valueKeys.map((key, index) => ({
+        name: key,
+        data: rawData.map(item => parseValue(item[key])),
+        color: currentChartColors[index % currentChartColors.length]
+      }));
     }
+  }
 
     let chartOptions = {};
     if (activeVisualizationType !== "table" && activeVisualizationType !== "card") {
@@ -683,120 +660,82 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
       dataStructure
     });
 
+    // --- LOGIKA KUNCI UNTUK MENCEGAH SAVE OTOMATIS ---
+    // Jika ini adalah render awal (setelah pindah canvas atau load pertama kali),
+    // kita lewati logika penyimpanan.
     if (isInitialMount.current) {
-        isInitialMount.current = false;
-        return;
+        isInitialMount.current = false; // Set ke false agar run berikutnya bisa menyimpan
+        return; // Jangan lakukan apa-apa lagi di render awal ini.
     }
     
+    // Jika kode sampai di sini, artinya useEffect ini dipicu oleh perubahan
+    // pada `visualizationConfig` atau `activeVisualizationType` (bukan render awal).
+    // Ini adalah saat yang tepat untuk menyimpan perubahan.
+    console.log(`Perubahan terdeteksi, menyimpan visualisasi ID: ${savedVisualizationId || '(baru)'}`);
     debouncedSaveOrUpdateVisualization(
         savedVisualizationId,
         activeVisualizationType,
         chartOptions,
         currentChartColors,
         requestPayload.query,
-        localConfig
+        visualizationConfig // Kirim seluruh config yang ada
     );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     fetchedData, 
     activeVisualizationType, 
-    localConfig
+    visualizationConfig
+    // Tidak perlu dependensi lain di sini untuk mencegah loop yang tidak diinginkan
   ]);
 
   const handleVisualizationTypeChange = (newType) => {
-    setActiveVisualizationType(newType === "table" ? "" : newType);
-  };
-
-  const handleSeriesTypeChange = (seriesName, newType) => {
-    setLocalConfig(prevConfig => {
-        const existingSeriesConfig = prevConfig.seriesConfig || [];
-        const seriesExists = existingSeriesConfig.some(s => s.name === seriesName);
-        let newSeriesConfig;
-
-        if (seriesExists) {
-            newSeriesConfig = existingSeriesConfig.map(s => 
-                s.name === seriesName ? { ...s, type: newType } : s
-            );
-        } else {
-            newSeriesConfig = [...existingSeriesConfig, { name: seriesName, type: newType }];
-        }
-        
-        return { ...prevConfig, seriesConfig: newSeriesConfig };
-    });
+    setActiveVisualizationType(newType === "table" ? "" : newType); // Treat "" as table internally for selection consistency
   };
 
   const renderChartControls = () => {
-    const chartOptionsList = [
-        { type: "bar", label: "Batang" }, 
-        { type: "line", label: "Garis" },
-        { type: "area", label: "Area" },
-        { type: "pie", label: "Pie" }, 
-        { type: "donut", label: "Donut" },
-        { type: "scatter", label: "Scatter" }, 
-        { type: "heatmap", label: "Heatmap" },
-        { type: "combo", label: "Kombinasi" },
-        { type: "", label: "Tabel" }, 
-        { type: "card", label: "Card" }
-    ];
-
-    const comboSeriesOptions = [
-        { type: "bar", label: "Batang"},
-        { type: "line", label: "Garis"},
-        { type: "area", label: "Area"},
-        { type: "scatter", label: "Scatter"},
-    ];
-    
-    const currentSelection = activeVisualizationType === "" ? "table" : activeVisualizationType;
-    
-    return (
-        <div className="chart-controls p-3 mb-4 border border-gray-200 rounded-md bg-gray-50/50 backdrop-blur-sm shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jenis Visualisasi:
-            </label>
-            <select
-                value={currentSelection}
-                onChange={(e) => handleVisualizationTypeChange(e.target.value)}
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            >
-                {chartOptionsList.map((option) => (
-                    <option key={option.type} value={option.type}>
-                    {option.label}
-                    </option>
-                ))}
-            </select>
-
-            {activeVisualizationType === 'combo' && visualizationData?.valueKeys && (
-                <div className="mt-4 p-3 border border-gray-200 rounded-md bg-gray-50">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-3">Konfigurasi Seri Kombinasi</h4>
-                    <div className="space-y-2">
-                        {visualizationData.valueKeys.map(key => {
-                            const currentSeriesConfig = localConfig.seriesConfig?.find(s => s.name === key);
-                            const currentSeriesType = currentSeriesConfig?.type || 'bar';
-
-                            return (
-                                <div key={key} className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-600 font-medium">{key}</span>
-                                    <select 
-                                        value={currentSeriesType}
-                                        onChange={(e) => handleSeriesTypeChange(key, e.target.value)}
-                                        className="w-1/2 max-w-xs px-2 py-1 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                                    >
-                                        {comboSeriesOptions.map(opt => (
-                                            <option key={opt.type} value={opt.type}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+  const chartOptionsList = [
+    { type: "bar", label: "Batang" }, 
+    { type: "line", label: "Garis" },
+    { type: "pie", label: "Pie" }, 
+    { type: "donut", label: "Donut" },
+    { type: "scatter", label: "Scatter" }, 
+    { type: "heatmap", label: "Heatmap" },
+    { type: "", label: "Tabel" }, 
+    { type: "card", label: "Card" }
+  ];
+  
+  // Normalize activeVisualizationType for comparison: "" means table.
+  const currentSelection = activeVisualizationType === "" ? "table" : activeVisualizationType;
+  
+  return (
+    <div className="chart-controls mb-4">
+      {userAccessLevel !== 'view' && (
+        <>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Jenis Visualisasi:
+        </label>
+        <select
+          value={currentSelection}
+          onChange={(e) => handleVisualizationTypeChange(e.target.value)}
+          className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        >
+          {chartOptionsList.map((option) => (
+            <option key={option.type} value={option.type}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        </>
+      )}
+    </div>
+  );
 };
 
+  if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
+
   const chartContainerStyle = {
-    backgroundColor: localConfig?.backgroundColor || "#ffffff",
+    backgroundColor: visualizationConfig?.backgroundColor || "#ffffff",
     padding: "1rem",
     display: "flex",
     flexDirection: "column",
@@ -804,7 +743,6 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     width: "100%",
     borderRadius: "8px", 
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)", 
-    position: 'relative'
   };
 
   const chartWrapperStyle = {
@@ -814,30 +752,10 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     overflow: 'hidden' 
   };
 
-  const toggleButtonStyle = {
-    position: 'absolute',
-    top: '12px',
-    left: '12px',
-    zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    backdropFilter: 'blur(4px)',
-    border: '1px solid #e0e0e0',
-    borderRadius: '50%',
-    width: '32px',
-    height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-  };
-  
-  if (status.loading) return <div className="p-4 text-center">Memuat visualisasi...</div>;
-
   if (status.error && !visualizationData?.rawData) {
     return (
       <div style={chartContainerStyle}>
-         {userAccessLevel !== 'view' && renderChartControls()}
+         {renderChartControls()}
          <div className="p-4 text-red-600 text-center flex-grow flex items-center justify-center">Error: {status.error}</div>
       </div>
     );
@@ -845,7 +763,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   if (!visualizationData?.rawData && !status.loading) {
       return (
         <div style={chartContainerStyle}>
-            {userAccessLevel !== 'view' && renderChartControls()}
+            {renderChartControls()}
             <div className="p-4 text-center text-gray-500 flex-grow flex items-center justify-center" style={{minHeight: '200px'}}>
                 {requestPayload?.query ? "Tidak ada data untuk ditampilkan atau konfigurasi belum lengkap." : "Silakan jalankan query untuk melihat visualisasi."}
                 {status.error && <span className="block text-red-500 mt-2">Detail: {status.error}</span>}
@@ -857,68 +775,57 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   if (!visualizationData) {
     return (
         <div style={chartContainerStyle}>
-             {userAccessLevel !== 'view' && renderChartControls()}
+             {renderChartControls()}
             <div className="p-4 text-center">Menyiapkan visualisasi...</div>
         </div>
     );
   }
-
-  const renderContent = () => {
-    if (activeVisualizationType === "" || activeVisualizationType === "table") {
-        return (
-            <div style={{...chartWrapperStyle, overflow: 'auto' }}> 
-                <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
-            </div>
-        );
-    }
-    
-    if (activeVisualizationType === "card") {
-        return (
-            <div style={chartWrapperStyle}> 
-                <CardComponent 
-                    data={visualizationData.rawData} 
-                    labelKey={visualizationData.labelKey} 
-                    valueKey={visualizationData.valueKeys[0] || visualizationData.labelKey}
-                    visualizationConfig={localConfig}
-                />
-            </div>
-        );
-    }
   
-    if (visualizationData.options && visualizationData.series) {
-        return (
-            <div style={chartWrapperStyle}> 
-                <Chart
-                    options={visualizationData.options}
-                    series={visualizationData.series}
-                    type={activeVisualizationType === 'combo' ? 'line' : visualizationData.currentType || 'bar'}
-                    height="100%"
-                    width="100%"
-                />
-            </div>
-        );
-    }
+  if (activeVisualizationType === "" || activeVisualizationType === "table") { 
+    return (
+      <div style={chartContainerStyle}>
+        {renderChartControls()}
+        {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
+        <div style={{...chartWrapperStyle, overflow: 'auto' }}> 
+          <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
+        </div>
+      </div>
+    );
+  }
 
-    return null;
-  };
+  if (activeVisualizationType === "card") {
+    return (
+      <div style={chartContainerStyle}>
+        {renderChartControls()}
+        {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
+        <div style={chartWrapperStyle}> 
+          <CardComponent 
+            data={visualizationData.rawData} 
+            labelKey={visualizationData.labelKey} 
+            valueKey={visualizationData.valueKeys[0] || visualizationData.labelKey}
+            visualizationConfig={visualizationConfig}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={chartContainerStyle}>
-        {userAccessLevel !== 'view' && (
-            <button
-                style={toggleButtonStyle}
-                onClick={() => setControlsVisible(!controlsVisible)}
-                title={controlsVisible ? "Sembunyikan Opsi" : "Tampilkan Opsi"}
-              >
-                {controlsVisible ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
-              </button>
-        )}
-
-        {userAccessLevel !== 'view' && controlsVisible && renderChartControls()}
-      
-        {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
-      
-        {renderContent()}
+      {renderChartControls()}
+      {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
+      {visualizationData.options && visualizationData.series && 
+       (activeVisualizationType !== "table" && activeVisualizationType !== "card") && (
+        <div style={chartWrapperStyle}> 
+          <Chart
+            options={visualizationData.options}
+            series={visualizationData.series}
+            type={visualizationData.currentType || "bar"}
+            height="100%"
+            width="100%"
+          />
+        </div>
+      )}
     </div>
   );
 };

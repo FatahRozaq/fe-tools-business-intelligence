@@ -307,7 +307,7 @@ const goToPreviousCanvas = () => {
 
               <span id="menu-visualisasi" className="cursor-pointer d-flex align-items-center">
                 <AiOutlinePieChart className="me-1" />
-                Pilih Visualisasi
+                Konfigurasi
               </span>
 
               <span className="mx-2">|</span>
