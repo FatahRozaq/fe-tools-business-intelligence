@@ -690,7 +690,7 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
   ]);
 
   const handleVisualizationTypeChange = (newType) => {
-    setActiveVisualizationType(newType === "table" ? "" : newType); // Treat "" as table internally for selection consistency
+    setActiveVisualizationType(newType); // Treat "" as table internally for selection consistency
   };
 
   const renderChartControls = () => {
@@ -781,13 +781,13 @@ const Visualisasi = ({ requestPayload, visualizationType, visualizationConfig, c
     );
   }
   
-  if (activeVisualizationType === "" || activeVisualizationType === "table") { 
+  if (activeVisualizationType === "table") { 
     return (
       <div style={chartContainerStyle}>
         {renderChartControls()}
         {status.error && <div className="p-2 mb-2 text-sm text-red-600 bg-red-100 border border-red-300 rounded">Error: {status.error}</div>}
         <div style={{...chartWrapperStyle, overflow: 'auto' }}> 
-          <DataTableComponent data={visualizationData.rawData} query={requestPayload?.query} />
+          <DataTableComponent data={visualizationData.rawData}/>
         </div>
       </div>
     );

@@ -27,6 +27,7 @@ const DataTableComponent = ({
       axios
         .post(`${config.API_BASE_URL}/api/kelola-dashboard/execute-query`, {
           query,
+          id_datasource: 1,
         })
         .then((response) => {
           if (response.data.success) {
