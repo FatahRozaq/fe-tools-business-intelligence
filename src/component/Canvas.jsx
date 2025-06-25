@@ -27,7 +27,7 @@ const Canvas = ({
   const [isLoading, setIsLoading] = useState(true); // Loading state untuk data awal
   const [pendingSaveTimeouts, setPendingSaveTimeouts] = useState({});
   const [totalCanvases, setTotalCanvases] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
 
   const zoomSpeed = 0.005;
   const containerRef = useRef(null);
@@ -194,12 +194,12 @@ useEffect(() => {
   // Fungsi untuk menyimpan visualisasi ke API (dengan workaround untuk config)
   const saveVisualizationToAPI = useCallback((visualization) => {
   // Validasi dasar sebelum mengirim
-  setIsSaving(true);
-  if (!visualization.query || !visualization.type || !visualization.id_datasource) {
-      setIsSaving(false);
-      console.warn("Attempted to save visualization with missing required fields (query, type, id_datasource).", visualization);
-      return Promise.reject("Missing required fields");
-  }
+  // setIsSaving(true);
+  // if (!visualization.query || !visualization.type || !visualization.id_datasource) {
+  //     setIsSaving(false);
+  //     console.warn("Attempted to save visualization with missing required fields (query, type, id_datasource).", visualization);
+  //     return Promise.reject("Missing required fields");
+  // }
   
 
   // Pastikan config adalah objek sebelum stringify
@@ -245,9 +245,9 @@ useEffect(() => {
     .then(response => {
       console.log("Visualization saved response:", response.data);
       // Cek status sukses dari response API
-      if (response.data.status !== 'success') {
-        setIsSaving(false);
-      }
+      // if (response.data.status !== 'success') {
+      //   setIsSaving(false);
+      // }
       
       // Periksa apakah data dan id_visualization ada dalam response
       if (response.data.data && response.data.data.id_visualization) {
@@ -319,7 +319,7 @@ useEffect(() => {
           error.response ? { status: error.response.status, data: error.response.data } : error.message
       );
       // Lemparkan kembali error agar pemanggil tahu terjadi kegagalan
-      setIsSaving(false);
+      // setIsSaving(false);
       throw error;
     });
 }, [selectedVisualization, onVisualizationSelect, setVisualizations]); // Tambahkan setVisualizations sebagai dependensi
@@ -882,12 +882,12 @@ useEffect(() => {
   return (
   <main className="canvas-container" ref={containerRef}>
     {/* Overlay abu-abu saat sedang dalam proses */}
-    {isSaving || isLoading ? (
+    {/* {isSaving || isLoading ? (
       <div className="overlay active">
         <div className="spinner"></div>
         <p>Processing...</p>
       </div>
-    ) : null}
+    ) : null} */}
 
     <div
       className="canvas"
@@ -899,7 +899,7 @@ useEffect(() => {
         minHeight: "800px",
         overflow: "visible",
         border: "1px solid #d9d9d9",
-        pointerEvents: isSaving ? 'none' : 'auto' // Nonaktifkan interaksi saat menyimpan
+        // pointerEvents: isSaving ? 'none' : 'auto' // Nonaktifkan interaksi saat menyimpan
       }}
       onClick={handleCanvasClick}
     >
