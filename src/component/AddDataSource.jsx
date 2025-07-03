@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import config from "../config";
 import { GrDatabase } from "react-icons/gr";
 import { FaFloppyDisk, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { MdCancel } from "react-icons/md";
 
-const AddDatasource = ({ onCancel, onSaveSuccess }) => {
+const AddDatasource = ({ isOpen, onClose, onSaveSuccess }) => {
   const [formData, setFormData] = useState({
     connection_name: "",
     driver: "",
@@ -35,6 +35,51 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
     return defaultPorts[dbType] || "";
   };
 
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        connection_name: "",
+        driver: "",
+        host: "",
+        port: "",
+        database: "",
+        username: "",
+        password: "",
+      });
+      setMessage("");
+      setErrors({});
+      setShowPassword(false);
+    }
+  }, [isOpen]);
+
+  // Handle ESC key and prevent body scroll
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      // Prevent body scroll without affecting layout
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscapeKey);
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen, isLoading, onClose]);
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -46,6 +91,11 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
       });
     } else {
       setFormData({ ...formData, [name]: value });
+    }
+    
+    // Clear specific error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
     }
   };
 
@@ -64,9 +114,10 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
       .then((response) => {
         setIsLoading(false);
         if (response.data.status === 'success') {
-          setMessage("Datasource berhasil ditambahkan dan data sedang diproses. Halaman akan dimuat ulang.");
+          setMessage("Datasource berhasil ditambahkan dan data sedang diproses. Modal akan ditutup dalam 2 detik.");
           setTimeout(() => {
             onSaveSuccess();
+            onClose();
           }, 2000);
         } else {
           setMessage(response.data.message || "Gagal menyimpan koneksi database.");
@@ -85,172 +136,238 @@ const AddDatasource = ({ onCancel, onSaveSuccess }) => {
       });
   };
 
+  const handleCancel = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="sidebar-2" id="tambah-datasource">
-      <div className="sub-title">
-        <GrDatabase size={48} className="text-muted" />
-        <span className="sub-text">Tambah Datasource</span>
-      </div>
-      <hr className="full-line" />
-      {message && <div className={`alert ${Object.keys(errors).length > 0 ? 'alert-danger' : 'alert-info'}`}>{message}</div>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>
-            Nama Koneksi <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            name="connection_name"
-            placeholder="e.g., crm_production"
-            value={formData.connection_name}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.connection_name ? 'is-invalid' : ''}`}
-          />
-          {errors.connection_name && <div className="invalid-feedback">{errors.connection_name[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Tipe Database <span className="text-danger">*</span>
-          </label>
-          <select
-            name="driver"
-            value={formData.driver}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.driver ? 'is-invalid' : ''}`}
-          >
-            <option value="">Pilih Tipe Database</option>
-            {dbTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          {errors.driver && <div className="invalid-feedback">{errors.driver[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Host <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            name="host"
-            value={formData.host}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.host ? 'is-invalid' : ''}`}
-          />
-           {errors.host && <div className="invalid-feedback">{errors.host[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Port <span className="text-danger">*</span>
-          </label>
-          <input
-            type="number"
-            name="port"
-            value={formData.port}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.port ? 'is-invalid' : ''}`}
-          />
-           {errors.port && <div className="invalid-feedback">{errors.port[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Nama Database <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            name="database"
-            value={formData.database}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.database ? 'is-invalid' : ''}`}
-          />
-           {errors.database && <div className="invalid-feedback">{errors.database[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Username <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-            className={`form-control ${errors.username ? 'is-invalid' : ''}`}
-          />
-           {errors.username && <div className="invalid-feedback">{errors.username[0]}</div>}
-        </div>
-
-        <div className="form-group">
-          <label>
-            Password <span className="text-danger">*</span>
-          </label>
-          <div className="input-group">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className={`form-control ${errors.password ? 'is-invalid' : ''}`}
-              style={{ borderRight: 'none' }}
-            />
-            <span className="input-group-text" style={{ backgroundColor: 'transparent', borderLeft: 'none', cursor: 'pointer' }}>
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="btn btn-link p-0 text-muted"
-                style={{ border: 'none', background: 'none' }}
-                tabIndex="-1"
-              >
-                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-              </button>
-            </span>
+    <div 
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+      style={{ 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        zIndex: 9999 
+      }}
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white rounded shadow-lg" 
+        style={{ 
+          width: '90%', 
+          maxWidth: '600px', 
+          maxHeight: '90vh',
+          overflow: 'hidden'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="border-bottom">
+          <div className="p-3 d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">
+              <GrDatabase className="me-2" />
+              Tambah Datasource
+            </h5>
+            <button 
+              type="button" 
+              className="btn btn-sm btn-light" 
+              onClick={handleCancel}
+              disabled={isLoading}
+              aria-label="Close"
+              style={{ fontSize: '18px', lineHeight: '1' }}
+            >
+              ×
+            </button>
           </div>
-          {errors.password && <div className="invalid-feedback">{errors.password[0]}</div>}
         </div>
 
-        <button
-          type="submit"
-          className="btn d-flex align-items-center justify-content-center py-2 w-100 mt-3"
-          style={{
-            backgroundColor: "#000080",
-            color: "white",
-            borderRadius: "0.375rem",
-            height: 40
-          }}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          ) : (
-            <>
-              <FaFloppyDisk className="me-2" />
-              Simpan & Proses
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2 w-100 mt-2"
-          style={{ height: 40 }}
-          disabled={isLoading}
-        >
-          <MdCancel className="me-2" />
-          Batal
-        </button>
-      </form>
+        {/* Body */}
+        <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <div className="p-4">
+            {message && (
+              <div className={`alert ${Object.keys(errors).length > 0 ? 'alert-danger' : 'alert-info'}`}>
+                {message}
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label">
+                  Nama Koneksi <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="connection_name"
+                  placeholder="e.g., crm_production"
+                  value={formData.connection_name}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className={`form-control ${errors.connection_name ? 'is-invalid' : ''}`}
+                />
+                {errors.connection_name && <div className="invalid-feedback">{errors.connection_name[0]}</div>}
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">
+                  Tipe Database <span className="text-danger">*</span>
+                </label>
+                <select
+                  name="driver"
+                  value={formData.driver}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className={`form-control ${errors.driver ? 'is-invalid' : ''}`}
+                >
+                  <option value="">Pilih Tipe Database</option>
+                  {dbTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.driver && <div className="invalid-feedback">{errors.driver[0]}</div>}
+              </div>
+
+              <div className="row">
+                <div className="col-md-8">
+                  <div className="mb-3">
+                    <label className="form-label">
+                      Host <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="host"
+                      value={formData.host}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      className={`form-control ${errors.host ? 'is-invalid' : ''}`}
+                    />
+                    {errors.host && <div className="invalid-feedback">{errors.host[0]}</div>}
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="mb-3">
+                    <label className="form-label">
+                      Port <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="port"
+                      value={formData.port}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      className={`form-control ${errors.port ? 'is-invalid' : ''}`}
+                    />
+                    {errors.port && <div className="invalid-feedback">{errors.port[0]}</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">
+                  Nama Database <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="database"
+                  value={formData.database}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className={`form-control ${errors.database ? 'is-invalid' : ''}`}
+                />
+                {errors.database && <div className="invalid-feedback">{errors.database[0]}</div>}
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">
+                  Username <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className={`form-control ${errors.username ? 'is-invalid' : ''}`}
+                />
+                {errors.username && <div className="invalid-feedback">{errors.username[0]}</div>}
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label">
+                  Password <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                    className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                    style={{ borderRight: 'none' }}
+                  />
+                  <span className="input-group-text" style={{ backgroundColor: 'transparent', borderLeft: 'none', cursor: 'pointer' }}>
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="btn btn-link p-0 text-muted"
+                      style={{ border: 'none', background: 'none' }}
+                      tabIndex="-1"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
+                  </span>
+                </div>
+                {errors.password && <div className="invalid-feedback">{errors.password[0]}</div>}
+              </div>
+
+              <div className="d-flex gap-2">
+                <button
+                  type="submit"
+                  className="btn d-flex align-items-center justify-content-center py-2 flex-fill"
+                  style={{
+                    backgroundColor: "#000080",
+                    color: "white",
+                    borderRadius: "0.375rem",
+                    height: 40
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <>
+                      <FaFloppyDisk className="me-2" />
+                      Simpan & Proses
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="btn btn-outline-secondary d-flex align-items-center justify-content-center py-2 flex-fill"
+                  style={{ height: 40 }}
+                  disabled={isLoading}
+                >
+                  <MdCancel className="me-2" />
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

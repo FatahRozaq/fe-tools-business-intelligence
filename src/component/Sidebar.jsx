@@ -356,21 +356,21 @@ const Sidebar = () => {
     }
   };
 
+  const handleOpenAddDatasource = () => {
+    setShowAddDatasource(true);
+  };
+
+  const handleCloseAddDatasource = () => {
+    setShowAddDatasource(false);
+  };
 
   const renderSidebarContent = () => {
     if (loading) {
       return <div className="alert alert-info">Loading...</div>;
     }
-    if (showAddDatasource) {
-      return (
-        <AddDatasource
-          onCancel={() => setShowAddDatasource(false)}
-          onSaveSuccess={handleSaveSuccess}
-        />
-      );
-    }
+    
     if (Object.keys(groupedTables).length === 0) {
-      return <SidebarDatasource onTambahDatasource={() => setShowAddDatasource(true)} />;
+      return <SidebarDatasource onTambahDatasource={handleOpenAddDatasource} />;
     }
 
     const lowerCaseQuery = searchQuery.toLowerCase();
@@ -399,7 +399,7 @@ const Sidebar = () => {
           </div>
           <button
             className="btn btn-sm btn-outline-dark"
-            onClick={() => setShowAddDatasource(true)}
+            onClick={handleOpenAddDatasource}
             title="Tambah Datasource Baru"
           >
             <FaPlus />
@@ -565,6 +565,13 @@ const Sidebar = () => {
             onVisualizationTypeChange={handleVisualizationTypeChange}
           />
         </>
+      )}
+      {showAddDatasource && (
+        <AddDatasource 
+          isOpen={showAddDatasource}
+          onClose={handleCloseAddDatasource}
+          onSaveSuccess={handleSaveSuccess}
+        />
       )}
       <Canvas
         data={canvasData}
